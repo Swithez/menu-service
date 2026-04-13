@@ -6,20 +6,22 @@
 **Date:** 2026-04-13
 
 ### Context
-A restaurant management system needs to handle three distinct bounded contexts:
-menu composition, warehouse inventory, and order processing. These domains
-evolve at different rates, have different scalability needs, and are owned by
-different roles (menu editor, warehouse manager, kitchen/waiter).
+A restaurant management system needs to handle four distinct bounded contexts:
+authentication & access control, menu composition, warehouse inventory, and order
+processing. These domains evolve at different rates, have different scalability
+needs, and are owned by different roles.
 
 ### Decision
-Split the system into three independent microservices, each with its own
-PostgreSQL database and deployment unit.
+Split the system into four independent backend microservices plus one frontend
+service, each with its own PostgreSQL database and deployment unit.
 
-| Service | Framework | Rationale |
-|---------|-----------|-----------|
-| `menu-service` | FastAPI | Heavy schema validation (Pydantic), async read-heavy workload, OpenAPI docs for free |
-| `warehouse-service` | FastAPI | Same pattern as menu; async bulk queries for stock reports |
-| `order-service` | Flask | Synchronous; simpler lifecycle state machine; demonstrates polyglot approach |
+| Service | Framework | Port | Rationale |
+|---------|-----------|------|-----------|
+| `auth-service` | FastAPI | 8004 | Async JWT issuance; RBAC with fine-grained permissions |
+| `menu-service` | FastAPI | 8001 | Heavy schema validation (Pydantic), async read-heavy workload |
+| `warehouse-service` | FastAPI | 8002 | Same pattern as menu; async bulk queries for stock reports |
+| `order-service` | Flask | 8003 | Synchronous; simpler lifecycle state machine; demonstrates polyglot approach |
+| `web-ui` | Flask | 8888 | Server-rendered HTML; proxies API calls on behalf of the browser |
 
 ### Consequences
 - (+) Independent deployability and scalability per service
@@ -86,8 +88,38 @@ Split tests into two suites per service:
 - `tests/features/` — **Feature-driven**: full HTTP flow via test client with
   in-memory SQLite. Organised by user-facing feature. Catches business-logic bugs.
 
-Both suites use pytest with `asyncio_mode = "auto"` (FastAPI) or standard sync
-(Flask). Coverage reported on the `app/` package.
+Both suites use pytest with `asyncio_mode = "auto"` (FastAPI services) or standard
+sync (Flask services). Coverage reported on the `app/` package.
+
+---
+
+## ADR-005 — Centralized RBAC in auth-service
+
+**Status:** Accepted
+
+### Context
+The system has multiple roles (admin, waiter, cook, warehouse manager, etc.) each
+requiring access to different subsets of functionality across services. Scattering
+authorization logic across services would make it impossible to audit or change
+consistently.
+
+### Decision
+All identity and access management lives in `auth-service`:
+- **Permissions** are defined as static codes in code (`permissions.py`) and
+  seeded into the database on startup.
+- **Roles** are dynamic entities created via API, each with an arbitrary set of
+  permission codes.
+- **Users** carry a single role. JWT tokens embed the full set of permission codes
+  at issuance time.
+- Other services validate the JWT and inspect permission claims locally — they do
+  **not** call auth-service on every request.
+
+### Consequences
+- (+) Single source of truth for access control
+- (+) No per-request network hop for authorization
+- (-) Token permissions are stale until re-login if roles change mid-session
+- Mitigation: `ACCESS_TOKEN_EXPIRE_MINUTES` defaults to 480 (8 h); short enough
+  for a restaurant shift cycle
 
 ---
 
@@ -129,13 +161,22 @@ HTTP request
 ## Inter-service Communication
 
 ```
-order-service  ──GET /api/v1/dishes/{dish_id}──►  menu-service
-               ◄── 200 {name, price, is_available} ──
+web-ui  ──POST /api/v1/auth/login──────────────►  auth-service
+        ◄── {access_token} ──────────────────────
 
-order-service  ──POST /api/v1/products/consume──►  warehouse-service
+web-ui  ──GET /api/v1/* (Authorization: Bearer)►  menu-service / warehouse-service
+                                               ►  order-service / auth-service
+
+order-service  ──GET /api/v1/dishes/{dish_id}──►  menu-service
+               ◄── 200 {name, price, is_available}
+
+order-service  ──POST /api/v1/products/consume─►  warehouse-service
                (fire-and-forget, after order commit)
 ```
 
-All calls use `httpx` with a **5-second timeout**. A `503 Service Unavailable`
-is returned to the caller if `menu-service` is unreachable during order creation.
-Warehouse failures are silently logged.
+All inter-service calls use `httpx` with a **5-second timeout**. A `503 Service
+Unavailable` is returned to the caller if `menu-service` is unreachable during
+order creation. Warehouse failures are silently logged.
+
+JWT tokens issued by `auth-service` are validated locally by `web-ui` using the
+shared `JWT_SECRET` — no round-trip to auth-service on each page load.

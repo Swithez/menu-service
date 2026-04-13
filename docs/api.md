@@ -4,6 +4,7 @@ Base URLs (local dev / Docker Compose):
 
 | Service | Base URL |
 |---------|----------|
+| auth-service | `http://localhost:8004` |
 | menu-service | `http://localhost:8001` |
 | warehouse-service | `http://localhost:8002` |
 | order-service | `http://localhost:8003` |
@@ -11,6 +12,274 @@ Base URLs (local dev / Docker Compose):
 All endpoints consume and produce `application/json`.  
 UUIDs use the standard `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` format.  
 Decimal fields (price, stock) are returned as JSON strings with fixed precision.
+
+---
+
+## auth-service  `/api/v1`
+
+### Authentication
+
+#### `POST /auth/login`
+Obtain a JWT access token.
+
+**Request body**
+```json
+{
+  "email": "admin@restaurant.local",
+  "password": "admin123"
+}
+```
+
+**Responses**
+
+| Code | Description |
+|------|-------------|
+| 200 | Token issued |
+| 401 | Invalid email or password |
+| 403 | Account is disabled |
+
+**Response body** (`TokenResponse`)
+```json
+{
+  "access_token": "<jwt>",
+  "token_type": "bearer",
+  "expires_in": 28800
+}
+```
+
+---
+
+#### `GET /auth/me`
+Return info about the currently authenticated user.
+
+Requires: `Authorization: Bearer <token>` header.
+
+**Responses:** `200` UserResponse · `401` No / invalid token · `404` User deleted
+
+---
+
+### Users
+
+All user management endpoints require the `users:users:manage` permission.
+
+#### `GET /users`
+List all users. Returns `200` array of `UserResponse`.
+
+---
+
+#### `POST /users`
+Create a new user.
+
+**Request body**
+```json
+{
+  "email": "waiter@restaurant.local",
+  "full_name": "Иван Петров",
+  "password": "strongpass",
+  "role_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "is_active": true
+}
+```
+
+| Field | Type | Required | Constraints |
+|-------|------|----------|-------------|
+| `email` | string | yes | valid email, unique |
+| `full_name` | string | yes | 1–255 chars |
+| `password` | string | yes | 6–128 chars |
+| `role_id` | UUID | no | must exist |
+| `is_active` | boolean | no | default `true` |
+
+**Responses:** `201` UserResponse · `409` Email already exists · `422` Validation error
+
+---
+
+#### `GET /users/{user_id}`
+Get a single user by ID.
+
+**Responses:** `200` UserResponse · `404` Not found
+
+---
+
+#### `PATCH /users/{user_id}`
+Partially update a user. At least one field required.
+
+```json
+{
+  "full_name": "Новое Имя",
+  "role_id": "...",
+  "is_active": false,
+  "password": "newpassword"
+}
+```
+
+**Responses:** `200` UserResponse · `404` Not found · `409` Email conflict · `422` Validation error
+
+---
+
+#### `DELETE /users/{user_id}`
+Delete a user.
+
+**Responses:** `204` No content · `404` Not found
+
+---
+
+**`UserResponse` schema**
+```json
+{
+  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "email": "waiter@restaurant.local",
+  "full_name": "Иван Петров",
+  "role_id": "...",
+  "role_name": "waiter",
+  "is_active": true,
+  "created_at": "2026-04-13T10:00:00Z",
+  "updated_at": "2026-04-13T10:00:00Z"
+}
+```
+
+---
+
+### Roles
+
+All role management endpoints require the `users:roles:manage` permission.
+
+#### `GET /roles`
+List all roles. Returns `200` array of `RoleResponse`.
+
+---
+
+#### `POST /roles`
+Create a new role.
+
+```json
+{
+  "name": "waiter",
+  "description": "Официант — создаёт и ведёт заказы",
+  "permission_codes": ["orders:create", "orders:read:own", "orders:take"]
+}
+```
+
+**Responses:** `201` RoleDetailResponse · `409` Name already exists · `422` Validation error
+
+---
+
+#### `GET /roles/{role_id}`
+Get a role with its full permission list.
+
+**Responses:** `200` RoleDetailResponse · `404` Not found
+
+---
+
+#### `PATCH /roles/{role_id}`
+Update role name or description (not permissions).
+
+```json
+{ "name": "senior-waiter", "description": "Старший официант" }
+```
+
+**Responses:** `200` RoleDetailResponse · `404` Not found · `409` Name conflict · `422` Validation error
+
+---
+
+#### `PUT /roles/{role_id}/permissions`
+Replace the full set of permissions for a role. Provide an array of permission codes.
+
+```json
+["orders:create", "orders:read:own", "orders:take", "orders:ready"]
+```
+
+**Responses:** `200` RoleDetailResponse · `404` Not found · `422` Unknown permission code
+
+---
+
+#### `DELETE /roles/{role_id}`
+Delete a role. Fails if the role is a system role (`is_system=true`) or has assigned users.
+
+**Responses:** `204` No content · `404` Not found · `409` Role is system or has users
+
+---
+
+**`RoleResponse` schema**
+```json
+{
+  "id": "...",
+  "name": "waiter",
+  "description": "Официант",
+  "is_system": false,
+  "created_at": "2026-04-13T10:00:00Z",
+  "permission_count": 3
+}
+```
+
+**`RoleDetailResponse`** extends `RoleResponse` with a `permissions` array:
+```json
+{
+  "permissions": [
+    { "code": "orders:create", "description": "Создание заказов", "group": "Заказы" }
+  ]
+}
+```
+
+---
+
+### Permissions
+
+Require `users:roles:manage` permission.
+
+#### `GET /permissions`
+List all permissions defined in the system.
+
+**Response** — `200` array of `PermissionSchema`
+```json
+[
+  { "code": "menu:categories:read", "description": "Просмотр категорий", "group": "Меню" }
+]
+```
+
+---
+
+#### `GET /permissions/groups`
+Return permissions grouped by domain.
+
+```json
+{
+  "Меню": [ { "code": "menu:categories:read", ... } ],
+  "Склад": [ ... ],
+  "Заказы": [ ... ],
+  "Пользователи": [ ... ]
+}
+```
+
+---
+
+### Full Permission List
+
+| Code | Description | Group |
+|------|-------------|-------|
+| `menu:categories:read` | Просмотр категорий | Меню |
+| `menu:categories:write` | Управление категориями | Меню |
+| `menu:dishes:read` | Просмотр блюд | Меню |
+| `menu:dishes:write` | Управление блюдами | Меню |
+| `menu:dishes:price:write` | Изменение цен на блюда | Меню |
+| `menu:dishes:price_history:read` | Просмотр истории цен | Меню |
+| `warehouse:products:read` | Просмотр продуктов склада | Склад |
+| `warehouse:products:write` | Управление продуктами склада | Склад |
+| `warehouse:stock:incoming` | Приёмка товара | Склад |
+| `warehouse:stock:outgoing` | Списание расхода | Склад |
+| `warehouse:stock:write_off` | Ручное списание (потери) | Склад |
+| `warehouse:cost_price:read` | Просмотр себестоимости | Склад |
+| `orders:create` | Создание заказов | Заказы |
+| `orders:read:own` | Просмотр своих заказов | Заказы |
+| `orders:read:all` | Просмотр всех заказов | Заказы |
+| `orders:take` | Взять заказ в работу | Заказы |
+| `orders:ready` | Отметить заказ готовым | Заказы |
+| `orders:close` | Закрыть заказ (принять оплату) | Заказы |
+| `orders:cancel:own` | Отменить свой заказ | Заказы |
+| `orders:cancel:any` | Отменить любой заказ | Заказы |
+| `orders:delete` | Удалить заказ | Заказы |
+| `users:read` | Просмотр пользователей | Пользователи |
+| `users:users:manage` | Управление пользователями | Пользователи |
+| `users:roles:manage` | Управление ролями | Пользователи |
 
 ---
 

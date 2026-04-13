@@ -14,52 +14,47 @@
 
 > Render `.puml` files at **[PlantText](https://www.planttext.com)** or **[PlantUML online](https://plantuml.com/plantuml)**.
 
-
 ## Architecture
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│                         Docker Compose                           │
-│                                                                  │
-│  ┌─────────────────────────────────────────────────────────────┐ │
-│  │          menu-service  (FastAPI : 8001)                     │ │
-│  │  • Categories CRUD                                          │ │
-│  │  • Dishes CRUD  (name, description, image)                  │ │
-│  │  • Nutrition info  (calories, proteins, fats, carbs)        │ │
-│  │  • Price management + full price history                    │ │
-│  │  DB: menu_db (PostgreSQL)                                   │ │
-│  └────────────────────────────┬────────────────────────────────┘ │
-│                               │ HTTP GET /dishes/{id}             │
-│  ┌─────────────────────────────▼──────────────────────────────┐  │
-│  │       warehouse-service  (FastAPI : 8002)                  │  │
-│  │  • Products / ingredients CRUD                             │  │
-│  │  • Stock level tracking (current_stock, min_stock_level)   │  │
-│  │  • Stock movements  (INCOMING / OUTGOING / WRITE_OFF)      │  │
-│  │  • Low-stock alert filter                                  │  │
-│  │  DB: warehouse_db (PostgreSQL)                             │  │
-│  └────────────────────────────┬───────────────────────────────┘  │
-│                               │ HTTP GET /dishes/{id}             │
-│                               │ HTTP POST /products/consume       │
-│  ┌─────────────────────────────▼──────────────────────────────┐  │
-│  │          order-service  (Flask : 8003)                     │  │
-│  │  • Order CRUD                                              │  │
-│  │  • Full status lifecycle:                                  │  │
-│  │      CREATED → IN_PROGRESS → READY → CLOSED               │  │
-│  │                           ↘ CANCELLED                      │  │
-│  │  • Price & dish-name snapshots at order time               │  │
-│  │  • Notifies warehouse on CLOSE (stock deduction)           │  │
-│  │  DB: order_db (PostgreSQL)                                 │  │
-│  └────────────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│                          Docker Compose                              │
+│                                                                      │
+│  ┌───────────────────────────────────────────────────────────────┐   │
+│  │                web-ui  (Flask : 8888)                         │   │
+│  │  • Browser-facing HTML interface                              │   │
+│  │  • Reads JWT from session, proxies requests to all APIs       │   │
+│  └──────┬──────────┬──────────────┬────────────────┬─────────────┘   │
+│         │          │              │                │                  │
+│  ┌──────▼──────┐ ┌─▼────────────┐ │         ┌──────▼──────────────┐  │
+│  │menu-service │ │warehouse-    │ │         │  auth-service        │  │
+│  │(FastAPI:8001│ │service       │ │         │  (FastAPI : 8004)    │  │
+│  │• Categories │ │(FastAPI:8002)│ │         │  • JWT login         │  │
+│  │• Dishes     │ │• Products    │ │         │  • Users CRUD        │  │
+│  │• Prices     │ │• Stock       │ │         │  • Roles & perms     │  │
+│  │  DB:menu_db │ │  movements   │ │         │  DB: auth_db         │  │
+│  └─────────────┘ │  DB:wh_db   │ │         └──────────────────────┘  │
+│                  └─────────────┘ │                                    │
+│                        ┌─────────▼──────────────┐                    │
+│                        │  order-service          │                    │
+│                        │  (Flask : 8003)         │                    │
+│                        │  • Orders lifecycle     │                    │
+│                        │  CREATED→IN_PROGRESS    │                    │
+│                        │        →READY→CLOSED    │                    │
+│                        │  DB: order_db           │                    │
+│                        └────────────────────────┘                    │
+└──────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Services
 
-| Service            | Tech        | Port | Responsibility                          |
-|--------------------|-------------|------|-----------------------------------------|
-| `menu-service`     | FastAPI     | 8001 | Menu: categories, dishes, prices, kcal  |
-| `warehouse-service`| FastAPI     | 8002 | Stock: products, movements, low-stock   |
-| `order-service`    | Flask       | 8003 | Orders: create, take, close, cancel     |
+| Service              | Tech     | Port | Responsibility                           |
+|----------------------|----------|------|------------------------------------------|
+| `menu-service`       | FastAPI  | 8001 | Menu: categories, dishes, prices, kcal   |
+| `warehouse-service`  | FastAPI  | 8002 | Stock: products, movements, low-stock    |
+| `order-service`      | Flask    | 8003 | Orders: create, take, close, cancel      |
+| `auth-service`       | FastAPI  | 8004 | Auth: JWT, users, roles, permissions     |
+| `web-ui`             | Flask    | 8888 | Browser UI for all services              |
 
 ## Quick Start
 
@@ -74,9 +69,32 @@ docker compose up --build
 curl http://localhost:8001/health   # menu-service
 curl http://localhost:8002/health   # warehouse-service
 curl http://localhost:8003/health   # order-service
+curl http://localhost:8004/health   # auth-service
+
+# Web interface
+open http://localhost:8888          # Login with admin@restaurant.local / admin123
 ```
 
 ## API Summary
+
+### Auth Service (FastAPI — port 8004)
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/api/v1/auth/login` | Obtain JWT token |
+| GET | `/api/v1/auth/me` | Current user info |
+| GET | `/api/v1/users` | List users |
+| POST | `/api/v1/users` | Create user |
+| GET | `/api/v1/users/{id}` | Get user |
+| PATCH | `/api/v1/users/{id}` | Update user |
+| DELETE | `/api/v1/users/{id}` | Delete user |
+| GET | `/api/v1/roles` | List roles |
+| POST | `/api/v1/roles` | Create role |
+| GET | `/api/v1/roles/{id}` | Get role with permissions |
+| PATCH | `/api/v1/roles/{id}` | Update role |
+| PUT | `/api/v1/roles/{id}/permissions` | Replace role permissions |
+| DELETE | `/api/v1/roles/{id}` | Delete role |
+| GET | `/api/v1/permissions` | List all permissions |
+| GET | `/api/v1/permissions/groups` | Permissions grouped by domain |
 
 ### Menu Service (FastAPI — port 8001)
 | Method | Path | Description |
@@ -130,6 +148,7 @@ Focus: type constraints, field validators, value ranges.
 cd services/menu-service && pytest tests/types/
 cd services/warehouse-service && pytest tests/types/
 cd services/order-service && pytest tests/types/
+cd services/auth-service && pytest tests/types/
 ```
 
 ### Feature-Driven Tests (`tests/features/`)
@@ -140,16 +159,24 @@ Focus: business rules, lifecycle, error cases, filtering.
 cd services/menu-service && pytest tests/features/
 cd services/warehouse-service && pytest tests/features/
 cd services/order-service && pytest tests/features/
+cd services/auth-service && pytest tests/features/
 ```
 
 ### Run all tests with coverage
 ```bash
-cd services/menu-service && pytest
-cd services/warehouse-service && pytest
-cd services/order-service && pytest
+cd services/menu-service && pytest --cov=app
+cd services/warehouse-service && pytest --cov=app
+cd services/order-service && pytest --cov=app
+cd services/auth-service && pytest --cov=app
 ```
 
 ## Database Schema
+
+### auth_db
+- `permissions` — code (PK), description, group (seeded from code, not editable via API)
+- `roles` — id, name, description, is_system, created_at
+- `role_permissions` — role_id, permission_code (composite PK)
+- `users` — id, email, full_name, hashed_password, role_id, is_active, timestamps
 
 ### menu_db
 - `categories` — id, name, description, is_active, timestamps
