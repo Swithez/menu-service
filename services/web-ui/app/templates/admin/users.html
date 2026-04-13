@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Пользователи — Restaurant Manager{% endblock %}
+{% block page_title %}Управление пользователями{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p class="text-muted mb-0">Список учётных записей системы.</p>
+  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
+    <i class="bi bi-person-plus me-2"></i>Новый пользователь
+  </button>
+</div>
+
+<div class="card card-flat">
+  <div class="card-body p-0">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Email</th>
+          <th>Имя</th>
+          <th>Роль</th>
+          <th class="text-center">Статус</th>
+          <th class="text-center">Создан</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for u in users %}
+        <tr>
+          <td class="fw-semibold">{{ u.email }}</td>
+          <td>{{ u.full_name }}</td>
+          <td>
+            {% if u.role_name %}
+              <span class="badge bg-primary-subtle text-primary border border-primary-subtle">
+                {{ u.role_name }}
+              </span>
+            {% else %}
+              <span class="text-muted small">Без роли</span>
+            {% endif %}
+          </td>
+          <td class="text-center">
+            {% if u.is_active %}
+              <span class="badge bg-success-subtle text-success border border-success-subtle">
+                <i class="bi bi-check-circle me-1"></i>Активен
+              </span>
+            {% else %}
+              <span class="badge bg-danger-subtle text-danger border border-danger-subtle">
+                <i class="bi bi-x-circle me-1"></i>Заблокирован
+              </span>
+            {% endif %}
+          </td>
+          <td class="text-center text-muted small">{{ u.created_at|fmt_dt }}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-secondary me-1"
+                    data-bs-toggle="modal"
+                    data-bs-target="#editModal{{ loop.index }}">
+              <i class="bi bi-pencil"></i>
+            </button>
+            <form method="post" action="{{ url_for('admin.delete_user', user_id=u.id) }}"
+                  class="d-inline"
+                  onsubmit="return confirm('Удалить пользователя {{ u.email }}?')">
+              <button class="btn btn-sm btn-outline-danger">
+                <i class="bi bi-trash"></i>
+              </button>
+            </form>
+          </td>
+        </tr>
+
+        <!-- Edit modal per user -->
+        <div class="modal fade" id="editModal{{ loop.index }}" tabindex="-1">
+          <div class="modal-dialog">
+            <form method="post" action="{{ url_for('admin.edit_user', user_id=u.id) }}">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title"><i class="bi bi-pencil me-2"></i>Редактировать: {{ u.email }}</h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                  <div class="mb-3">
+                    <label class="form-label">Полное имя</label>
+                    <input name="full_name" class="form-control" value="{{ u.full_name }}">
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Роль</label>
+                    <select name="role_id" class="form-select">
+                      <option value="">— Без роли —</option>
+                      {% for r in roles %}
+                        <option value="{{ r.id }}" {% if r.id == u.role_id %}selected{% endif %}>
+                          {{ r.name }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Статус</label>
+                    <select name="is_active" class="form-select">
+                      <option value="1" {% if u.is_active %}selected{% endif %}>Активен</option>
+                      <option value="0" {% if not u.is_active %}selected{% endif %}>Заблокирован</option>
+                    </select>
+                  </div>
+                  <div class="mb-3">
+                    <label class="form-label">Новый пароль <small class="text-muted">(оставьте пустым чтобы не менять)</small></label>
+                    <input type="password" name="password" class="form-control" minlength="6">
+                  </div>
+                </div>
+                <div class="modal-footer">
+                  <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+                  <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+      {% else %}
+        <tr><td colspan="6" class="text-center text-muted py-4">Нет пользователей</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Create modal -->
+<div class="modal fade" id="createModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{{ url_for('admin.create_user') }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-person-plus me-2"></i>Новый пользователь</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Email <span class="text-danger">*</span></label>
+            <input type="email" name="email" class="form-control" required maxlength="255">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Полное имя <span class="text-danger">*</span></label>
+            <input name="full_name" class="form-control" required maxlength="255">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Пароль <span class="text-danger">*</span></label>
+            <input type="password" name="password" class="form-control" required minlength="6">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Роль</label>
+            <select name="role_id" class="form-select">
+              <option value="">— Без роли —</option>
+              {% for r in roles %}
+                <option value="{{ r.id }}">{{ r.name }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="mb-3">
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="is_active"
+                     id="newIsActive" value="1" checked>
+              <label class="form-check-label" for="newIsActive">Активен</label>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-primary">Создать</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

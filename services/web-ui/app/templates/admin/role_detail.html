@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Роль: {{ role.name }} — Restaurant Manager{% endblock %}
+{% block page_title %}Роль: {{ role.name }}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('admin.roles') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>К ролям
+  </a>
+</div>
+
+<div class="row g-4">
+
+  <!-- Left: role info + rename -->
+  <div class="col-lg-4">
+    <div class="card card-flat">
+      <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
+        <span><i class="bi bi-shield me-2"></i>Информация</span>
+        {% if role.is_system %}
+          <span class="badge bg-warning text-dark"><i class="bi bi-shield-lock me-1"></i>Системная</span>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <table class="table table-borderless table-sm mb-3">
+          <tr><th class="text-muted" style="width:40%">ID</th>
+              <td class="font-monospace" style="font-size:.75rem">{{ role.id }}</td></tr>
+          <tr><th class="text-muted">Прав</th>
+              <td><span class="badge bg-secondary">{{ role.permission_count }}</span></td></tr>
+          <tr><th class="text-muted">Создана</th><td>{{ role.created_at|fmt_dt }}</td></tr>
+        </table>
+
+        {% if not role.is_system %}
+        <form method="post" action="{{ url_for('admin.edit_role', role_id=role.id) }}">
+          <div class="mb-2">
+            <label class="form-label small fw-medium">Название</label>
+            <input name="name" class="form-control form-control-sm" value="{{ role.name }}" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-medium">Описание</label>
+            <textarea name="description" class="form-control form-control-sm"
+                      rows="2">{{ role.description or '' }}</textarea>
+          </div>
+          <button class="btn btn-sm btn-primary w-100">
+            <i class="bi bi-save me-1"></i>Сохранить
+          </button>
+        </form>
+        {% else %}
+          <p class="text-muted small mb-0">Системную роль нельзя переименовать.</p>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: permissions -->
+  <div class="col-lg-8">
+    <form method="post" action="{{ url_for('admin.set_permissions', role_id=role.id) }}">
+      <div class="card card-flat">
+        <div class="card-header fw-semibold d-flex align-items-center justify-content-between">
+          <span><i class="bi bi-key me-2"></i>Права доступа</span>
+          <button type="submit" class="btn btn-sm btn-primary">
+            <i class="bi bi-save me-1"></i>Сохранить права
+          </button>
+        </div>
+        <div class="card-body">
+          {% for group, perms in perm_groups.items() %}
+            <div class="mb-4">
+              <h6 class="text-muted text-uppercase fw-semibold" style="font-size:.7rem;letter-spacing:.05em">
+                {{ group }}
+              </h6>
+              <div class="row g-2">
+                {% for p in perms %}
+                  <div class="col-md-6">
+                    <div class="form-check">
+                      <input class="form-check-input" type="checkbox"
+                             name="permissions" value="{{ p.code }}"
+                             id="perm_{{ p.code }}"
+                             {% if p.code in assigned_codes %}checked{% endif %}>
+                      <label class="form-check-label" for="perm_{{ p.code }}">
+                        <span class="fw-medium small">{{ p.description }}</span>
+                        <br><code class="text-muted" style="font-size:.7rem">{{ p.code }}</code>
+                      </label>
+                    </div>
+                  </div>
+                {% endfor %}
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </form>
+  </div>
+
+</div>
+{% endblock %}

@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% block title %}Заказ #{{ order.id[:8] }} — Restaurant Manager{% endblock %}
+{% block page_title %}Заказ #{{ order.id[:8] }}…{% endblock %}
+
+{% block content %}
+{% set color, icon = STATUS_LABELS.get(order.status, ('secondary','bi-dash')) %}
+
+<div class="mb-3 d-flex align-items-center gap-3">
+  <a href="{{ url_for('orders.order_list') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>К заказам
+  </a>
+  <span class="badge bg-{{ color }} fs-6"><i class="{{ icon }} me-1"></i>{{ order.status }}</span>
+</div>
+
+<div class="row g-4">
+
+  <!-- Info card -->
+  <div class="col-lg-4">
+    <div class="card card-flat">
+      <div class="card-header fw-semibold"><i class="bi bi-info-circle me-2"></i>Детали</div>
+      <div class="card-body">
+        <table class="table table-borderless table-sm mb-0">
+          <tr><th class="text-muted" style="width:40%">ID</th>
+              <td class="font-monospace" style="font-size:.75rem">{{ order.id }}</td></tr>
+          <tr><th class="text-muted">Стол</th>
+              <td>{% if order.table_number %}<span class="badge bg-secondary">{{ order.table_number }}</span>{% else %}—{% endif %}</td></tr>
+          <tr><th class="text-muted">Гость</th><td>{{ order.customer_name or '—' }}</td></tr>
+          <tr><th class="text-muted">Примечание</th><td>{{ order.notes or '—' }}</td></tr>
+          <tr><th class="text-muted">Создан</th><td>{{ order.created_at|fmt_dt }}</td></tr>
+          <tr><th class="text-muted">В работе</th><td>{{ order.taken_at|fmt_dt }}</td></tr>
+          <tr><th class="text-muted">Закрыт</th><td>{{ order.closed_at|fmt_dt }}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="card card-flat mt-3">
+      <div class="card-header fw-semibold"><i class="bi bi-lightning me-2"></i>Действия</div>
+      <div class="card-body d-flex flex-column gap-2">
+
+        {% if order.status == 'CREATED' %}
+          <form method="post" action="{{ url_for('orders.take_order', order_id=order.id) }}">
+            <button class="btn btn-warning w-100">
+              <i class="bi bi-fire me-2"></i>Взять в работу
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('orders.cancel_order', order_id=order.id) }}">
+            <button class="btn btn-outline-danger w-100">
+              <i class="bi bi-x-circle me-2"></i>Отменить заказ
+            </button>
+          </form>
+
+        {% elif order.status == 'IN_PROGRESS' %}
+          <form method="post" action="{{ url_for('orders.mark_ready', order_id=order.id) }}">
+            <button class="btn btn-info w-100">
+              <i class="bi bi-check-circle me-2"></i>Готово к выдаче
+            </button>
+          </form>
+          <form method="post" action="{{ url_for('orders.cancel_order', order_id=order.id) }}">
+            <button class="btn btn-outline-danger w-100">
+              <i class="bi bi-x-circle me-2"></i>Отменить заказ
+            </button>
+          </form>
+
+        {% elif order.status == 'READY' %}
+          <form method="post" action="{{ url_for('orders.close_order', order_id=order.id) }}">
+            <button class="btn btn-success w-100">
+              <i class="bi bi-bag-check me-2"></i>Закрыть (оплачено)
+            </button>
+          </form>
+
+        {% elif order.status in ('CLOSED', 'CANCELLED') %}
+          <div class="text-muted small text-center py-2">
+            <i class="bi bi-lock me-1"></i>Заказ в финальном состоянии
+          </div>
+        {% endif %}
+
+        {% if order.status not in ('CLOSED',) %}
+          <hr class="my-1">
+          <form method="post" action="{{ url_for('orders.delete_order', order_id=order.id) }}"
+                onsubmit="return confirm('Удалить заказ навсегда?')">
+            <button class="btn btn-outline-secondary btn-sm w-100">
+              <i class="bi bi-trash me-1"></i>Удалить заказ
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Total -->
+    <div class="card card-flat mt-3">
+      <div class="card-body text-center">
+        <div class="text-muted small mb-1">Итого</div>
+        <div class="display-6 fw-bold text-success">{{ order.total_amount|fmt_price }}</div>
+        <div class="text-muted small mt-1">{{ order.items|length }} позиций</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Items -->
+  <div class="col-lg-8">
+    <div class="card card-flat">
+      <div class="card-header fw-semibold"><i class="bi bi-list-ul me-2"></i>Позиции заказа</div>
+      <div class="card-body p-0">
+        {% if order.items %}
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>Блюдо</th><th class="text-center">Кол-во</th>
+              <th>Цена (на момент заказа)</th><th class="text-end">Сумма</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for item in order.items %}
+            <tr>
+              <td>
+                <div class="fw-semibold">{{ item.dish_name }}</div>
+                {% if item.notes %}<small class="text-muted">{{ item.notes }}</small>{% endif %}
+              </td>
+              <td class="text-center">
+                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle fs-6">
+                  × {{ item.quantity }}
+                </span>
+              </td>
+              <td class="text-muted">{{ item.price_at_order|fmt_price }}</td>
+              <td class="text-end fw-semibold">
+                {{ (item.price_at_order|float * item.quantity)|round(2)|fmt_price }}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+          <tfoot class="table-light">
+            <tr>
+              <td colspan="3" class="text-end fw-semibold">Итого:</td>
+              <td class="text-end fw-bold text-success fs-5">{{ order.total_amount|fmt_price }}</td>
+            </tr>
+          </tfoot>
+        </table>
+        {% else %}
+        <div class="text-center py-4 text-muted">Позиций нет</div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Status timeline -->
+    <div class="card card-flat mt-3">
+      <div class="card-header fw-semibold"><i class="bi bi-diagram-3 me-2"></i>Жизненный цикл</div>
+      <div class="card-body">
+        <div class="status-timeline">
+          {% for s, (c, ic) in STATUS_LABELS.items() if s != 'CANCELLED' %}
+            <div class="status-step {% if order.status == s %}active bg-{{ c }}-subtle border-{{ c }}{% elif loop.index <= [STATUS_LABELS.keys()|list].0.index(order.status) + 1 %}done{% endif %}">
+              <i class="{{ ic }}"></i>
+              <span>{{ {'CREATED':'Создан','IN_PROGRESS':'В работе','READY':'Готово','CLOSED':'Закрыт'}.get(s, s) }}</span>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

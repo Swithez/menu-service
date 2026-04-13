@@ -1,0 +1,234 @@
+/* ═══════════════════════════════════════════════════════
+   Restaurant Manager — Custom UI
+   ═══════════════════════════════════════════════════════ */
+
+:root {
+  --sidebar-width: 240px;
+  --sidebar-bg:    #111827;
+  --sidebar-text:  #9ca3af;
+  --sidebar-hover: rgba(255,255,255,.06);
+  --sidebar-active:#6366f1;
+  --topbar-h:      60px;
+  --brand-color:   #6366f1;
+}
+
+/* ── Layout shell ──────────────────────────────────────── */
+body { background: #f3f4f6; color: #111827; }
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+/* ── Sidebar ───────────────────────────────────────────── */
+.sidebar {
+  width: var(--sidebar-width);
+  min-height: 100vh;
+  background: var(--sidebar-bg);
+  color: var(--sidebar-text);
+  position: fixed;
+  top: 0; left: 0; bottom: 0;
+  z-index: 100;
+  overflow-y: auto;
+  flex-shrink: 0;
+}
+
+.sidebar-brand {
+  padding: 1.25rem 1.25rem 1rem;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: -.3px;
+  border-bottom: 1px solid rgba(255,255,255,.07);
+  margin-bottom: .5rem;
+}
+.sidebar-brand span { color: var(--brand-color); }
+.sidebar-brand i { color: var(--brand-color); }
+
+.sidebar-label {
+  padding: .65rem 1.25rem .25rem;
+  font-size: .65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: #4b5563;
+}
+
+.sidebar-nav .nav-link {
+  color: var(--sidebar-text);
+  padding: .5rem 1.25rem;
+  border-radius: 0;
+  font-size: .875rem;
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  transition: background .15s, color .15s;
+}
+.sidebar-nav .nav-link:hover {
+  background: var(--sidebar-hover);
+  color: #fff;
+}
+.sidebar-nav .nav-link.active {
+  background: rgba(99,102,241,.2);
+  color: #a5b4fc;
+  font-weight: 600;
+  border-right: 3px solid var(--sidebar-active);
+}
+.sidebar-nav .nav-link i { font-size: 1rem; width: 1.25rem; text-align: center; }
+
+.sidebar-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid rgba(255,255,255,.07);
+}
+
+/* ── Main area ─────────────────────────────────────────── */
+.main-area {
+  margin-left: var(--sidebar-width);
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  height: var(--topbar-h);
+  background: #fff;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 90;
+}
+
+.content-body { padding-top: 1.25rem; }
+
+/* ── KPI cards ─────────────────────────────────────────── */
+.kpi-card {
+  background: #fff;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+  transition: box-shadow .2s;
+}
+.kpi-card:hover { box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+
+.kpi-icon {
+  width: 52px; height: 52px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.kpi-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+  color: #111827;
+}
+.kpi-label {
+  font-size: .8rem;
+  color: #6b7280;
+  margin-top: .15rem;
+}
+
+/* ── Cards ─────────────────────────────────────────────── */
+.card-flat {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0,0,0,.04);
+}
+.card-flat .card-header {
+  background: #fafafa;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 12px 12px 0 0;
+  padding: .75rem 1.25rem;
+  font-size: .875rem;
+}
+
+/* ── Tables ────────────────────────────────────────────── */
+.table { font-size: .875rem; }
+.table thead th {
+  font-size: .75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+  color: #6b7280;
+  border-bottom-width: 1px;
+  white-space: nowrap;
+}
+.table-hover > tbody > tr:hover { background-color: #f9fafb; }
+
+/* ── Nutrition boxes ───────────────────────────────────── */
+.nutrition-box {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: .75rem .5rem;
+}
+.nutrition-val {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+}
+.nutrition-label {
+  font-size: .7rem;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-top: .1rem;
+}
+
+/* ── Status timeline ───────────────────────────────────── */
+.status-timeline {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.status-step {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .4rem .85rem;
+  border-radius: 20px;
+  font-size: .8rem;
+  border: 1px solid #e5e7eb;
+  color: #9ca3af;
+  background: #f9fafb;
+}
+.status-step.active {
+  color: inherit;
+  font-weight: 600;
+}
+.status-step.done {
+  color: #059669;
+  border-color: #a7f3d0;
+  background: #ecfdf5;
+}
+
+/* ── Misc ──────────────────────────────────────────────── */
+.font-monospace { font-family: 'SF Mono', 'Fira Code', monospace; }
+
+.badge {
+  font-weight: 500;
+  letter-spacing: .02em;
+  padding: .35em .65em;
+}
+
+/* Alert tweaks */
+.alert { font-size: .875rem; }
+
+/* Scrollbar inside sidebar */
+.sidebar::-webkit-scrollbar { width: 4px; }
+.sidebar::-webkit-scrollbar-track { background: transparent; }
+.sidebar::-webkit-scrollbar-thumb { background: #374151; border-radius: 4px; }
+
+/* Responsive: collapse sidebar on small screens */
+@media (max-width: 768px) {
+  .sidebar { width: 0; overflow: hidden; }
+  .main-area { margin-left: 0; }
+}

@@ -1,0 +1,181 @@
+version: "3.9"
+
+services:
+  # ─── Databases ────────────────────────────────────────────────────────────────
+  menu-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: menu_db
+      POSTGRES_USER: menu_user
+      POSTGRES_PASSWORD: menu_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - menu_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U menu_user -d menu_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  warehouse-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: warehouse_db
+      POSTGRES_USER: warehouse_user
+      POSTGRES_PASSWORD: warehouse_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - warehouse_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U warehouse_user -d warehouse_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  order-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: order_db
+      POSTGRES_USER: order_user
+      POSTGRES_PASSWORD: order_password
+    ports:
+      - "5434:5432"
+    volumes:
+      - order_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U order_user -d order_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  auth-db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+    ports:
+      - "5435:5432"
+    volumes:
+      - auth_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── Services ─────────────────────────────────────────────────────────────────
+  menu-service:
+    build:
+      context: ./services/menu-service
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      DATABASE_URL: ${MENU_DATABASE_URL:-postgresql+asyncpg://menu_user:menu_password@menu-db:5432/menu_db}
+      SERVICE_HOST: 0.0.0.0
+      SERVICE_PORT: "8001"
+    depends_on:
+      menu-db:
+        condition: service_healthy
+    volumes:
+      - ./services/menu-service:/app
+    restart: on-failure
+
+  warehouse-service:
+    build:
+      context: ./services/warehouse-service
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      DATABASE_URL: ${WAREHOUSE_DATABASE_URL:-postgresql+asyncpg://warehouse_user:warehouse_password@warehouse-db:5432/warehouse_db}
+      MENU_SERVICE_URL: http://menu-service:8001
+      SERVICE_HOST: 0.0.0.0
+      SERVICE_PORT: "8002"
+    depends_on:
+      warehouse-db:
+        condition: service_healthy
+      menu-service:
+        condition: service_started
+    volumes:
+      - ./services/warehouse-service:/app
+    restart: on-failure
+
+  order-service:
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      DATABASE_URL: ${ORDER_DATABASE_URL:-postgresql://order_user:order_password@order-db:5432/order_db}
+      MENU_SERVICE_URL: http://menu-service:8001
+      WAREHOUSE_SERVICE_URL: http://warehouse-service:8002
+      SERVICE_HOST: 0.0.0.0
+      SERVICE_PORT: "8003"
+    depends_on:
+      order-db:
+        condition: service_healthy
+      menu-service:
+        condition: service_started
+      warehouse-service:
+        condition: service_started
+    volumes:
+      - ./services/order-service:/app
+    restart: on-failure
+
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    ports:
+      - "8004:8004"
+    environment:
+      DATABASE_URL: ${AUTH_DATABASE_URL:-postgresql+asyncpg://auth_user:auth_password@auth-db:5432/auth_db}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-use-long-random-string}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-480}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-admin@restaurant.local}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin123}
+      ADMIN_FULL_NAME: ${ADMIN_FULL_NAME:-Администратор}
+      SERVICE_HOST: 0.0.0.0
+      SERVICE_PORT: "8004"
+    depends_on:
+      auth-db:
+        condition: service_healthy
+    volumes:
+      - ./services/auth-service:/app
+    restart: on-failure
+
+  web-ui:
+    build:
+      context: ./services/web-ui
+      dockerfile: Dockerfile
+    ports:
+      - "8888:8080"
+    environment:
+      MENU_SERVICE_URL: http://menu-service:8001
+      WAREHOUSE_SERVICE_URL: http://warehouse-service:8002
+      ORDER_SERVICE_URL: http://order-service:8003
+      AUTH_SERVICE_URL: http://auth-service:8004
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production}
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production-use-long-random-string}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      FLASK_APP: "app.main:create_app"
+    depends_on:
+      - menu-service
+      - warehouse-service
+      - order-service
+      - auth-service
+    volumes:
+      - ./services/web-ui:/app
+    restart: on-failure
+
+volumes:
+  menu_db_data:
+  warehouse_db_data:
+  order_db_data:
+  auth_db_data:

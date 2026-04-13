@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% block title %}Новый заказ — Restaurant Manager{% endblock %}
+{% block page_title %}Новый заказ{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('orders.order_list') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>К заказам
+  </a>
+</div>
+
+<form method="post" action="{{ url_for('orders.create_order') }}" id="orderForm">
+<div class="row g-4">
+
+  <!-- Left: order info -->
+  <div class="col-lg-4">
+    <div class="card card-flat">
+      <div class="card-header fw-semibold"><i class="bi bi-info-circle me-2"></i>Информация</div>
+      <div class="card-body">
+        <div class="mb-3">
+          <label class="form-label">Номер стола</label>
+          <input name="table_number" class="form-control" type="number" min="1" max="999" placeholder="1">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Имя гостя</label>
+          <input name="customer_name" class="form-control" placeholder="Иван Иванов" maxlength="255">
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Примечание к заказу</label>
+          <textarea name="notes" class="form-control" rows="3" placeholder="Аллергии, пожелания…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- Order total summary -->
+    <div class="card card-flat mt-3">
+      <div class="card-header fw-semibold"><i class="bi bi-calculator me-2"></i>Итог</div>
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="text-muted">Позиций:</span>
+          <span id="summaryCount" class="fw-semibold">0</span>
+        </div>
+        <div class="d-flex justify-content-between align-items-center">
+          <span class="text-muted">Сумма:</span>
+          <span id="summaryTotal" class="fw-bold fs-5 text-success">0,00 ₽</span>
+        </div>
+        <hr>
+        <button type="submit" class="btn btn-primary w-100" id="submitBtn" disabled>
+          <i class="bi bi-check2-circle me-2"></i>Оформить заказ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: dish selector + items -->
+  <div class="col-lg-8">
+    <div class="card card-flat">
+      <div class="card-header fw-semibold"><i class="bi bi-egg-fried me-2"></i>Блюда</div>
+      <div class="card-body">
+
+        <!-- Add dish row -->
+        <div class="row g-2 align-items-end mb-3 pb-3 border-bottom">
+          <div class="col">
+            <label class="form-label small text-muted">Выберите блюдо</label>
+            <select id="dishSelect" class="form-select">
+              <option value="">— Выберите блюдо —</option>
+              {% for d in dishes %}
+                <option value="{{ d.id }}"
+                        data-name="{{ d.name }}"
+                        data-price="{{ d.price }}">
+                  {{ d.name }} — {{ d.price|fmt_price }}
+                </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-auto" style="width:100px">
+            <label class="form-label small text-muted">Кол-во</label>
+            <input id="dishQty" class="form-control" type="number" value="1" min="1" max="100">
+          </div>
+          <div class="col-auto" style="width:200px">
+            <label class="form-label small text-muted">Заметка</label>
+            <input id="dishNote" class="form-control" placeholder="Без лука…">
+          </div>
+          <div class="col-auto">
+            <button type="button" class="btn btn-outline-primary" onclick="addItem()">
+              <i class="bi bi-plus-circle"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Items list -->
+        <div id="itemsContainer">
+          <div id="emptyMsg" class="text-center text-muted py-4">
+            <i class="bi bi-cart" style="font-size:2rem"></i>
+            <p class="mt-2 mb-0">Добавьте блюда в заказ</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if not dishes %}
+    <div class="alert alert-warning mt-3 d-flex align-items-center gap-2">
+      <i class="bi bi-exclamation-triangle-fill"></i>
+      Нет доступных блюд. <a href="{{ url_for('menu.dishes') }}" class="ms-1">Перейти в меню</a>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const items = [];
+
+function addItem() {
+  const sel = document.getElementById('dishSelect');
+  const opt = sel.options[sel.selectedIndex];
+  if (!opt.value) { alert('Выберите блюдо'); return; }
+
+  const dishId = opt.value;
+  const name = opt.dataset.name;
+  const price = parseFloat(opt.dataset.price);
+  const qty = parseInt(document.getElementById('dishQty').value) || 1;
+  const note = document.getElementById('dishNote').value.trim();
+
+  // check duplicate
+  const existing = items.find(i => i.dishId === dishId);
+  if (existing) {
+    existing.qty += qty;
+    renderItems();
+    return;
+  }
+
+  items.push({ dishId, name, price, qty, note });
+  renderItems();
+  document.getElementById('dishNote').value = '';
+}
+
+function removeItem(idx) {
+  items.splice(idx, 1);
+  renderItems();
+}
+
+function updateQty(idx, val) {
+  const q = Math.max(1, Math.min(100, parseInt(val) || 1));
+  items[idx].qty = q;
+  renderItems();
+}
+
+function renderItems() {
+  const container = document.getElementById('itemsContainer');
+  const emptyMsg  = document.getElementById('emptyMsg');
+  const submitBtn = document.getElementById('submitBtn');
+  const countEl   = document.getElementById('summaryCount');
+  const totalEl   = document.getElementById('summaryTotal');
+
+  // remove old rows
+  container.querySelectorAll('.item-row').forEach(r => r.remove());
+
+  let total = 0;
+  items.forEach((item, idx) => {
+    const sub = item.price * item.qty;
+    total += sub;
+    const row = document.createElement('div');
+    row.className = 'item-row d-flex align-items-center gap-2 mb-2 p-2 bg-light rounded';
+    row.innerHTML = `
+      <div class="flex-grow-1">
+        <div class="fw-semibold">${item.name}</div>
+        ${item.note ? `<small class="text-muted">${item.note}</small>` : ''}
+        <input type="hidden" name="dish_id[]" value="${item.dishId}">
+        <input type="hidden" name="item_notes[]" value="${item.note}">
+      </div>
+      <div style="width:90px">
+        <input type="number" name="quantity[]" class="form-control form-control-sm text-center"
+               value="${item.qty}" min="1" max="100"
+               onchange="updateQty(${idx}, this.value)">
+      </div>
+      <div class="text-end fw-semibold text-success" style="width:100px">
+        ${sub.toLocaleString('ru-RU',{minimumFractionDigits:2})} ₽
+      </div>
+      <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeItem(${idx})">
+        <i class="bi bi-x"></i>
+      </button>`;
+    container.appendChild(row);
+  });
+
+  emptyMsg.style.display = items.length ? 'none' : 'block';
+  submitBtn.disabled = items.length === 0;
+  countEl.textContent = items.length;
+  totalEl.textContent = total.toLocaleString('ru-RU', {minimumFractionDigits:2}) + ' ₽';
+}
+</script>
+{% endblock %}

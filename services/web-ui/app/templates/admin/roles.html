@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}Роли — Restaurant Manager{% endblock %}
+{% block page_title %}Управление ролями{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <p class="text-muted mb-0">Роли определяют набор прав доступа. Системные роли нельзя удалить.</p>
+  <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#createModal">
+    <i class="bi bi-plus-circle me-2"></i>Новая роль
+  </button>
+</div>
+
+<div class="card card-flat">
+  <div class="card-body p-0">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Название</th>
+          <th>Описание</th>
+          <th class="text-center">Прав</th>
+          <th class="text-center">Системная</th>
+          <th class="text-center">Создана</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for role in roles %}
+        <tr>
+          <td>
+            <a href="{{ url_for('admin.role_detail', role_id=role.id) }}" class="fw-semibold text-decoration-none">
+              {{ role.name }}
+            </a>
+          </td>
+          <td class="text-muted">{{ role.description or '—' }}</td>
+          <td class="text-center">
+            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+              {{ role.permission_count }}
+            </span>
+          </td>
+          <td class="text-center">
+            {% if role.is_system %}
+              <span class="badge bg-warning text-dark"><i class="bi bi-shield-lock me-1"></i>Да</span>
+            {% else %}
+              <span class="text-muted">—</span>
+            {% endif %}
+          </td>
+          <td class="text-center text-muted small">{{ role.created_at|fmt_dt }}</td>
+          <td class="text-end">
+            <a href="{{ url_for('admin.role_detail', role_id=role.id) }}"
+               class="btn btn-sm btn-outline-secondary me-1">
+              <i class="bi bi-pencil"></i>
+            </a>
+            {% if not role.is_system %}
+              <form method="post" action="{{ url_for('admin.delete_role', role_id=role.id) }}"
+                    class="d-inline"
+                    onsubmit="return confirm('Удалить роль «{{ role.name }}»?')">
+                <button class="btn btn-sm btn-outline-danger">
+                  <i class="bi bi-trash"></i>
+                </button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="6" class="text-center text-muted py-4">Нет ролей</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Create modal -->
+<div class="modal fade" id="createModal" tabindex="-1">
+  <div class="modal-dialog">
+    <form method="post" action="{{ url_for('admin.create_role') }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-plus-circle me-2"></i>Новая роль</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Название <span class="text-danger">*</span></label>
+            <input name="name" class="form-control" required maxlength="100" placeholder="Менеджер">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Описание</label>
+            <textarea name="description" class="form-control" rows="2"
+                      placeholder="Необязательное описание…" maxlength="500"></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-primary">Создать</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

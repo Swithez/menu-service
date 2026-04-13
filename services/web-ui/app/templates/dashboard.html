@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% block title %}Дашборд — Restaurant Manager{% endblock %}
+{% block page_title %}Дашборд{% endblock %}
+
+{% block content %}
+{% if not services_ok %}
+<div class="alert alert-warning d-flex align-items-center gap-2">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  Один или несколько сервисов недоступны. Данные могут быть неполными.
+</div>
+{% endif %}
+
+<!-- KPI cards -->
+<div class="row g-3 mt-1">
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-icon bg-primary-subtle text-primary"><i class="bi bi-egg-fried"></i></div>
+      <div>
+        <div class="kpi-value">{{ stats.dishes_available }}</div>
+        <div class="kpi-label">Доступных блюд</div>
+        <small class="text-muted">из {{ stats.dishes_total }} всего</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-icon bg-warning-subtle text-warning"><i class="bi bi-fire"></i></div>
+      <div>
+        <div class="kpi-value">{{ stats.orders_created + stats.orders_in_progress }}</div>
+        <div class="kpi-label">Активных заказов</div>
+        <small class="text-muted">{{ stats.orders_in_progress }} в работе</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-icon {% if stats.products_low_stock > 0 %}bg-danger-subtle text-danger{% else %}bg-success-subtle text-success{% endif %}">
+        <i class="bi bi-box-seam"></i>
+      </div>
+      <div>
+        <div class="kpi-value">{{ stats.products_low_stock }}</div>
+        <div class="kpi-label">Мало на складе</div>
+        <small class="text-muted">из {{ stats.products_total }} продуктов</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl-3">
+    <div class="kpi-card">
+      <div class="kpi-icon bg-success-subtle text-success"><i class="bi bi-bag-check"></i></div>
+      <div>
+        <div class="kpi-value">{{ stats.orders_closed }}</div>
+        <div class="kpi-label">Закрытых заказов</div>
+        <small class="text-muted">{{ stats.orders_ready }} готово к выдаче</small>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-4 mt-1">
+
+  <!-- Active orders -->
+  <div class="col-lg-7">
+    <div class="card card-flat h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="bi bi-receipt me-2"></i>Активные заказы</span>
+        <a href="{{ url_for('orders.order_list') }}" class="btn btn-sm btn-outline-primary">Все заказы</a>
+      </div>
+      <div class="card-body p-0">
+        {% if active_orders %}
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr>
+              <th>№</th><th>Стол</th><th>Блюд</th><th>Сумма</th><th>Статус</th><th></th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for o in active_orders %}
+            <tr>
+              <td class="text-muted font-monospace" style="font-size:.75rem">{{ o.id[:8] }}…</td>
+              <td>{% if o.table_number %}<span class="badge bg-secondary">Стол {{ o.table_number }}</span>{% else %}—{% endif %}</td>
+              <td>{{ o.items|length }}</td>
+              <td class="fw-semibold">{{ o.total_amount|fmt_price }}</td>
+              <td>
+                {% set color, icon = {'CREATED':('primary','bi-clock'),'IN_PROGRESS':('warning','bi-fire'),'READY':('info','bi-check-circle')}.get(o.status, ('secondary','bi-dash')) %}
+                <span class="badge bg-{{ color }}"><i class="{{ icon }} me-1"></i>{{ o.status }}</span>
+              </td>
+              <td><a href="{{ url_for('orders.order_detail', order_id=o.id) }}" class="btn btn-sm btn-outline-secondary">→</a></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-inbox" style="font-size:2rem"></i>
+          <p class="mt-2 mb-0">Нет активных заказов</p>
+          <a href="{{ url_for('orders.new_order') }}" class="btn btn-primary btn-sm mt-3">
+            <i class="bi bi-plus-circle me-1"></i>Создать заказ
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Low stock -->
+  <div class="col-lg-5">
+    <div class="card card-flat h-100">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="bi bi-exclamation-triangle me-2 text-warning"></i>Низкий остаток</span>
+        <a href="{{ url_for('warehouse.products', low_stock=1) }}" class="btn btn-sm btn-outline-warning">Все</a>
+      </div>
+      <div class="card-body p-0">
+        {% if low_stock %}
+        <table class="table table-hover mb-0">
+          <thead class="table-light">
+            <tr><th>Продукт</th><th>Остаток</th><th>Мин.</th><th></th></tr>
+          </thead>
+          <tbody>
+          {% for p in low_stock %}
+            <tr>
+              <td class="fw-medium">{{ p.name }}</td>
+              <td class="text-danger fw-semibold">{{ p.current_stock|fmt_stock }} {{ p.unit }}</td>
+              <td class="text-muted">{{ p.min_stock_level|fmt_stock }} {{ p.unit }}</td>
+              <td>
+                <a href="{{ url_for('warehouse.products') }}" class="btn btn-sm btn-outline-secondary">→</a>
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div class="text-center text-muted py-5">
+          <i class="bi bi-check2-circle text-success" style="font-size:2rem"></i>
+          <p class="mt-2 mb-0">Склад в норме</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Quick actions -->
+<div class="row g-3 mt-1">
+  <div class="col-12">
+    <div class="card card-flat">
+      <div class="card-header fw-semibold"><i class="bi bi-lightning me-2"></i>Быстрые действия</div>
+      <div class="card-body d-flex flex-wrap gap-2">
+        <a href="{{ url_for('orders.new_order') }}" class="btn btn-primary">
+          <i class="bi bi-plus-circle me-1"></i>Новый заказ
+        </a>
+        <a href="{{ url_for('orders.order_list') }}?status=CREATED" class="btn btn-outline-primary">
+          <i class="bi bi-clock me-1"></i>Новые заказы ({{ stats.orders_created }})
+        </a>
+        <a href="{{ url_for('orders.order_list') }}?status=IN_PROGRESS" class="btn btn-outline-warning">
+          <i class="bi bi-fire me-1"></i>В работе ({{ stats.orders_in_progress }})
+        </a>
+        <a href="{{ url_for('orders.order_list') }}?status=READY" class="btn btn-outline-info">
+          <i class="bi bi-check-circle me-1"></i>Готово ({{ stats.orders_ready }})
+        </a>
+        <a href="{{ url_for('menu.dishes') }}" class="btn btn-outline-secondary">
+          <i class="bi bi-egg-fried me-1"></i>Меню
+        </a>
+        <a href="{{ url_for('warehouse.products') }}?low_stock=1" class="btn btn-outline-danger">
+          <i class="bi bi-box-seam me-1"></i>Низкий остаток ({{ stats.products_low_stock }})
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

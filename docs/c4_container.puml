@@ -1,0 +1,95 @@
+@startuml C4 Level 2 — Container Diagram
+
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+LAYOUT_LEFT_RIGHT()
+
+title C4 Model — Level 2: Container Diagram\nRestaurant Menu Microservice System
+
+AddElementTag("fastapi", $bgColor="#2980B9", $fontColor="white",  $borderColor="#1A5276", $sprite="python")
+AddElementTag("flask",   $bgColor="#F39C12", $fontColor="white",  $borderColor="#B7770D", $sprite="python")
+AddElementTag("pg",      $bgColor="#336791", $fontColor="white",  $borderColor="#1A3A54")
+
+' ──────────────────────────────────────────────
+'  Actors
+' ──────────────────────────────────────────────
+Person(manager, "Restaurant Manager", "Manages menu & stock")
+Person(staff,   "Waiter / Chef",      "Creates & processes orders")
+
+' ──────────────────────────────────────────────
+'  System boundary
+' ──────────────────────────────────────────────
+System_Boundary(rms, "Restaurant Menu System  —  docker compose") {
+
+    ' ── menu-service ──────────────────────────
+    Container_Boundary(ms_bound, "menu-service  :8001") {
+        Container(menu_api, "Menu API",
+            "Python 3.12 / FastAPI\nasync SQLAlchemy 2.0 / Pydantic v2",
+            "Exposes REST API for categories,\ndishes, prices, nutritional info", $tags="fastapi")
+
+        ContainerDb(menu_db, "menu_db",
+            "PostgreSQL 16",
+            "tables: categories, dishes,\nprice_history", $tags="pg")
+    }
+
+    ' ── warehouse-service ─────────────────────
+    Container_Boundary(ws_bound, "warehouse-service  :8002") {
+        Container(warehouse_api, "Warehouse API",
+            "Python 3.12 / FastAPI\nasync SQLAlchemy 2.0 / Pydantic v2",
+            "Stock management: products,\nmovements, low-stock alerts", $tags="fastapi")
+
+        ContainerDb(warehouse_db, "warehouse_db",
+            "PostgreSQL 16",
+            "tables: products,\nstock_movements", $tags="pg")
+    }
+
+    ' ── order-service ─────────────────────────
+    Container_Boundary(os_bound, "order-service  :8003") {
+        Container(order_api, "Order API",
+            "Python 3.12 / Flask 3.0\nSQLAlchemy / Pydantic v2",
+            "Order lifecycle:\nCREATED→IN_PROGRESS→READY→CLOSED", $tags="flask")
+
+        ContainerDb(order_db, "order_db",
+            "PostgreSQL 16",
+            "tables: orders,\norder_items", $tags="pg")
+    }
+}
+
+' ──────────────────────────────────────────────
+'  Relationships — actors → containers
+' ──────────────────────────────────────────────
+Rel(manager, menu_api,      "CRUD categories, dishes,\nprices, nutrition",  "HTTPS / JSON")
+Rel(manager, warehouse_api, "CRUD products,\nadjust stock",                 "HTTPS / JSON")
+Rel(staff,   order_api,     "Create / take / close\norders",                "HTTPS / JSON")
+
+' ──────────────────────────────────────────────
+'  Relationships — APIs → databases
+' ──────────────────────────────────────────────
+Rel(menu_api,      menu_db,      "reads / writes", "asyncpg\nSQLAlchemy async")
+Rel(warehouse_api, warehouse_db, "reads / writes", "asyncpg\nSQLAlchemy async")
+Rel(order_api,     order_db,     "reads / writes", "psycopg2\nSQLAlchemy sync")
+
+' ──────────────────────────────────────────────
+'  Relationships — inter-service HTTP
+' ──────────────────────────────────────────────
+Rel(order_api, menu_api,      "GET /api/v1/dishes/{id}\nValidate dish & get price",   "HTTP / JSON\nhttpx sync")
+Rel(order_api, warehouse_api, "POST /api/v1/products/consume\nDeduct stock on close",  "HTTP / JSON\nhttpx sync")
+
+' ──────────────────────────────────────────────
+'  Notes
+' ──────────────────────────────────────────────
+note right of order_api
+  Warehouse notification is
+  **fire-and-forget** (best-effort).
+  Failures are logged; stock is
+  reconciled asynchronously.
+end note
+
+note right of menu_api
+  Each service owns its own DB.
+  No shared schema, no direct
+  cross-service DB queries.
+end note
+
+@enduml

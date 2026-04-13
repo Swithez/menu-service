@@ -1,0 +1,163 @@
+@startuml ERD — Restaurant Menu Microservice System
+
+' ──────────────────────────────────────────────
+'  Styles
+' ──────────────────────────────────────────────
+skinparam linetype ortho
+skinparam roundcorner 8
+skinparam shadowing false
+skinparam DefaultFontName "Segoe UI"
+skinparam DefaultFontSize 12
+
+skinparam entity {
+    BackgroundColor<<menu>>      #E8F4FD
+    BorderColor<<menu>>          #2980B9
+    HeaderBackgroundColor<<menu>> #2980B9
+    FontColor<<menu>>            white
+
+    BackgroundColor<<warehouse>> #E9F7EF
+    BorderColor<<warehouse>>     #27AE60
+    HeaderBackgroundColor<<warehouse>> #27AE60
+    FontColor<<warehouse>>       white
+
+    BackgroundColor<<order>>     #FEF9E7
+    BorderColor<<order>>         #F39C12
+    HeaderBackgroundColor<<order>> #F39C12
+    FontColor<<order>>           white
+}
+
+skinparam note {
+    BackgroundColor #FDFEFE
+    BorderColor     #BDC3C7
+}
+
+' ══════════════════════════════════════════════
+'  DATABASE: menu_db
+' ══════════════════════════════════════════════
+package "menu_db" #E8F4FD {
+
+    entity "categories" <<menu>> {
+        * id            : UUID         <<PK>>
+        --
+        * name          : VARCHAR(255) <<UNIQUE>>
+          description   : TEXT
+        * is_active      : BOOLEAN      = true
+        * created_at     : TIMESTAMPTZ
+        * updated_at     : TIMESTAMPTZ
+    }
+
+    entity "dishes" <<menu>> {
+        * id            : UUID         <<PK>>
+        --
+          category_id   : UUID         <<FK → categories.id>>
+        * name          : VARCHAR(255)
+          description   : TEXT
+        * price         : NUMERIC(10,2)
+          calories      : INTEGER
+          proteins      : NUMERIC(6,2)
+          fats          : NUMERIC(6,2)
+          carbohydrates : NUMERIC(6,2)
+          weight_grams  : INTEGER
+        * is_available   : BOOLEAN      = true
+          image_url     : TEXT
+        * created_at     : TIMESTAMPTZ
+        * updated_at     : TIMESTAMPTZ
+    }
+
+    entity "price_history" <<menu>> {
+        * id         : UUID          <<PK>>
+        --
+        * dish_id    : UUID          <<FK → dishes.id>>
+        * old_price  : NUMERIC(10,2)
+        * new_price  : NUMERIC(10,2)
+        * changed_at : TIMESTAMPTZ
+    }
+
+    categories  ||--o{ dishes        : "has"
+    dishes      ||--o{ price_history : "tracks"
+}
+
+' ══════════════════════════════════════════════
+'  DATABASE: warehouse_db
+' ══════════════════════════════════════════════
+package "warehouse_db" #E9F7EF {
+
+    entity "products" <<warehouse>> {
+        * id                : UUID          <<PK>>
+        --
+        * name              : VARCHAR(255)  <<UNIQUE>>
+        * unit              : VARCHAR(50)
+          calories_per_unit : NUMERIC(8,2)
+        * current_stock     : NUMERIC(12,3) = 0
+        * min_stock_level   : NUMERIC(12,3) = 0
+          cost_price        : NUMERIC(10,2)
+        * created_at         : TIMESTAMPTZ
+        * updated_at         : TIMESTAMPTZ
+    }
+
+    entity "stock_movements" <<warehouse>> {
+        * id            : UUID          <<PK>>
+        --
+        * product_id    : UUID          <<FK → products.id>>
+        * quantity      : NUMERIC(12,3)
+        * movement_type : ENUM          <<INCOMING|OUTGOING|WRITE_OFF>>
+          reason        : TEXT
+          order_id      : UUID          <<ref: orders.id (cross-service)>>
+        * created_at     : TIMESTAMPTZ
+    }
+
+    products ||--o{ stock_movements : "records"
+}
+
+' ══════════════════════════════════════════════
+'  DATABASE: order_db
+' ══════════════════════════════════════════════
+package "order_db" #FEF9E7 {
+
+    entity "orders" <<order>> {
+        * id            : UUID          <<PK>>
+        --
+          table_number  : INTEGER
+          customer_name : VARCHAR(255)
+        * status        : ENUM          <<CREATED|IN_PROGRESS|READY|CLOSED|CANCELLED>>
+          notes         : TEXT
+        * total_amount   : NUMERIC(10,2) = 0
+        * created_at     : TIMESTAMPTZ
+        * updated_at     : TIMESTAMPTZ
+          taken_at      : TIMESTAMPTZ
+          closed_at     : TIMESTAMPTZ
+    }
+
+    entity "order_items" <<order>> {
+        * id             : UUID          <<PK>>
+        --
+        * order_id       : UUID          <<FK → orders.id>>
+        * dish_id        : UUID          <<ref: dishes.id (cross-service)>>
+        * dish_name      : VARCHAR(255)  <<snapshot>>
+        * quantity       : INTEGER
+        * price_at_order : NUMERIC(10,2) <<snapshot>>
+          notes          : TEXT
+    }
+
+    orders ||--o{ order_items : "contains"
+}
+
+' ══════════════════════════════════════════════
+'  Cross-service logical references (dashed)
+' ══════════════════════════════════════════════
+dishes        ....> order_items     : "dish_id (HTTP ref)"
+dishes        ....> stock_movements : "dish_id via consume API"
+
+' ══════════════════════════════════════════════
+'  Legend
+' ══════════════════════════════════════════════
+legend right
+  |= Symbol |= Meaning              |
+  |  *       | NOT NULL              |
+  |  <<PK>>  | Primary Key (UUID)    |
+  |  <<FK>>  | Foreign Key           |
+  |  ....>   | Cross-service HTTP ref|
+  |  = val   | Default value         |
+endlegend
+
+@enduml

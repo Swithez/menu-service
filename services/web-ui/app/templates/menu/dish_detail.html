@@ -1,0 +1,265 @@
+{% extends "base.html" %}
+{% block title %}{{ dish.name }} — Restaurant Manager{% endblock %}
+{% block page_title %}{{ dish.name }}{% endblock %}
+
+{% block content %}
+<div class="mb-3">
+  <a href="{{ url_for('menu.dishes') }}" class="btn btn-sm btn-outline-secondary">
+    <i class="bi bi-arrow-left me-1"></i>К списку блюд
+  </a>
+</div>
+
+<div class="row g-4">
+
+  <!-- Main info -->
+  <div class="col-lg-5">
+    <div class="card card-flat">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="bi bi-info-circle me-2"></i>Информация</span>
+        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalEdit">
+          <i class="bi bi-pencil me-1"></i>Редактировать
+        </button>
+      </div>
+      <div class="card-body">
+        {% if dish.image_url %}
+          <img src="{{ dish.image_url }}" class="img-fluid rounded mb-3" alt="{{ dish.name }}"
+               style="max-height:200px; object-fit:cover; width:100%"
+               onerror="this.style.display='none'">
+        {% endif %}
+
+        <table class="table table-borderless table-sm mb-0">
+          <tr><th class="text-muted" style="width:35%">Название</th><td class="fw-semibold">{{ dish.name }}</td></tr>
+          <tr><th class="text-muted">Категория</th>
+              <td>
+                {% if dish.category_id %}
+                  {{ categories | selectattr('id','eq',dish.category_id) | map(attribute='name') | first | default('—') }}
+                {% else %}—{% endif %}
+              </td>
+          </tr>
+          <tr><th class="text-muted">Описание</th><td>{{ dish.description or '—' }}</td></tr>
+          <tr><th class="text-muted">Доступность</th>
+              <td>
+                {% if dish.is_available %}
+                  <span class="badge bg-success-subtle text-success border border-success-subtle">Доступно</span>
+                {% else %}
+                  <span class="badge bg-danger-subtle text-danger border border-danger-subtle">Недоступно</span>
+                {% endif %}
+              </td>
+          </tr>
+          <tr><th class="text-muted">Создано</th><td>{{ dish.created_at|fmt_dt }}</td></tr>
+          <tr><th class="text-muted">Обновлено</th><td>{{ dish.updated_at|fmt_dt }}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <!-- Nutrition -->
+    <div class="card card-flat mt-3">
+      <div class="card-header fw-semibold"><i class="bi bi-bar-chart me-2"></i>Пищевая ценность</div>
+      <div class="card-body">
+        <div class="row g-2 text-center">
+          <div class="col-6">
+            <div class="nutrition-box">
+              <div class="nutrition-val">{{ dish.calories if dish.calories else '—' }}</div>
+              <div class="nutrition-label">ккал</div>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="nutrition-box">
+              <div class="nutrition-val">{{ dish.weight_grams if dish.weight_grams else '—' }}</div>
+              <div class="nutrition-label">граммов</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="nutrition-box">
+              <div class="nutrition-val text-primary">{{ dish.proteins if dish.proteins else '—' }}</div>
+              <div class="nutrition-label">белки г</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="nutrition-box">
+              <div class="nutrition-val text-warning">{{ dish.fats if dish.fats else '—' }}</div>
+              <div class="nutrition-label">жиры г</div>
+            </div>
+          </div>
+          <div class="col-4">
+            <div class="nutrition-box">
+              <div class="nutrition-val text-success">{{ dish.carbohydrates if dish.carbohydrates else '—' }}</div>
+              <div class="nutrition-label">углев. г</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Price + history -->
+  <div class="col-lg-7">
+    <div class="card card-flat">
+      <div class="card-header d-flex align-items-center justify-content-between">
+        <span class="fw-semibold"><i class="bi bi-tag me-2"></i>Цена</span>
+      </div>
+      <div class="card-body">
+        <div class="d-flex align-items-center gap-4 mb-3">
+          <div>
+            <div class="display-6 fw-bold text-success">{{ dish.price|fmt_price }}</div>
+            <small class="text-muted">Текущая цена</small>
+          </div>
+          <button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#modalPrice">
+            <i class="bi bi-pencil me-1"></i>Изменить цену
+          </button>
+        </div>
+
+        <h6 class="text-muted mb-2">История изменений</h6>
+        {% if history %}
+        <table class="table table-sm table-hover">
+          <thead class="table-light">
+            <tr><th>Дата</th><th>Было</th><th>Стало</th><th>Изменение</th></tr>
+          </thead>
+          <tbody>
+          {% for h in history %}
+            {% set delta = h.new_price|float - h.old_price|float %}
+            <tr>
+              <td class="text-muted small">{{ h.changed_at|fmt_dt }}</td>
+              <td>{{ h.old_price|fmt_price }}</td>
+              <td class="fw-semibold">{{ h.new_price|fmt_price }}</td>
+              <td>
+                {% if delta > 0 %}
+                  <span class="text-danger"><i class="bi bi-arrow-up-short"></i>{{ "%.2f"|format(delta) }} ₽</span>
+                {% else %}
+                  <span class="text-success"><i class="bi bi-arrow-down-short"></i>{{ "%.2f"|format(delta|abs) }} ₽</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <p class="text-muted small">История изменений пуста — цена не менялась с момента создания.</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Delete -->
+    <div class="card card-flat mt-3 border-danger-subtle">
+      <div class="card-header fw-semibold text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Опасная зона</div>
+      <div class="card-body d-flex align-items-center justify-content-between">
+        <div>
+          <p class="mb-0">Удалить блюдо навсегда. Это действие необратимо.</p>
+        </div>
+        <button class="btn btn-outline-danger" data-bs-toggle="modal" data-bs-target="#modalDel">
+          <i class="bi bi-trash me-1"></i>Удалить
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit modal -->
+<div class="modal fade" id="modalEdit" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <form method="post" action="{{ url_for('menu.update_dish', dish_id=dish.id) }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Редактировать блюдо</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <div class="row g-3">
+            <div class="col-8">
+              <label class="form-label">Название</label>
+              <input name="name" class="form-control" value="{{ dish.name }}" maxlength="255">
+            </div>
+            <div class="col-4">
+              <label class="form-label">Категория</label>
+              <select name="category_id" class="form-select">
+                <option value="">— Без категории —</option>
+                {% for c in categories %}
+                  <option value="{{ c.id }}" {% if dish.category_id == c.id %}selected{% endif %}>{{ c.name }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Описание</label>
+              <textarea name="description" class="form-control" rows="2">{{ dish.description or '' }}</textarea>
+            </div>
+            <div class="col-12">
+              <label class="form-label">Ссылка на фото</label>
+              <input name="image_url" class="form-control" value="{{ dish.image_url or '' }}">
+            </div>
+            <div class="col-12"><hr class="my-1"><p class="mb-0 small text-muted fw-semibold">Пищевая ценность</p></div>
+            <div class="col-3"><label class="form-label">Калории</label>
+              <input name="calories" class="form-control" type="number" min="0" value="{{ dish.calories or '' }}">
+            </div>
+            <div class="col-3"><label class="form-label">Вес (г)</label>
+              <input name="weight_grams" class="form-control" type="number" min="1" value="{{ dish.weight_grams or '' }}">
+            </div>
+            <div class="col-2"><label class="form-label">Белки</label>
+              <input name="proteins" class="form-control" type="number" step="0.01" value="{{ dish.proteins or '' }}">
+            </div>
+            <div class="col-2"><label class="form-label">Жиры</label>
+              <input name="fats" class="form-control" type="number" step="0.01" value="{{ dish.fats or '' }}">
+            </div>
+            <div class="col-2"><label class="form-label">Углев.</label>
+              <input name="carbohydrates" class="form-control" type="number" step="0.01" value="{{ dish.carbohydrates or '' }}">
+            </div>
+            <div class="col-12">
+              <div class="form-check">
+                <input class="form-check-input" type="checkbox" name="is_available" id="edit_avail"
+                       {% if dish.is_available %}checked{% endif %}>
+                <label class="form-check-label" for="edit_avail">Доступно для заказа</label>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-primary">Сохранить</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Price modal -->
+<div class="modal fade" id="modalPrice" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <form method="post" action="{{ url_for('menu.update_price', dish_id=dish.id) }}">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="bi bi-tag me-2"></i>Изменить цену</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label">Новая цена (₽) <span class="text-danger">*</span></label>
+          <input name="price" class="form-control form-control-lg" type="number"
+                 step="0.01" min="0.01" value="{{ dish.price }}" required>
+          <small class="text-muted">Текущая: {{ dish.price|fmt_price }}</small>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+          <button type="submit" class="btn btn-primary">Обновить</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete modal -->
+<div class="modal fade" id="modalDel" tabindex="-1">
+  <div class="modal-dialog modal-sm">
+    <form method="post" action="{{ url_for('menu.delete_dish', dish_id=dish.id) }}">
+      <div class="modal-content">
+        <div class="modal-header border-0 pb-0">
+          <h5 class="modal-title text-danger"><i class="bi bi-trash me-2"></i>Удалить блюдо?</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body pt-1">Удалить <strong>«{{ dish.name }}»</strong> навсегда?</div>
+        <div class="modal-footer border-0 pt-0">
+          <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Нет</button>
+          <button type="submit" class="btn btn-danger btn-sm">Удалить</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
