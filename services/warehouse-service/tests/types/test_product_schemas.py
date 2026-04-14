@@ -16,7 +16,7 @@ class TestProductCreateTypes:
         p = ProductCreate(name="Flour", unit="kg")
         assert p.name == "Flour"
         assert p.unit == "kg"
-        assert p.current_stock == Decimal("0")  # type: ignore[attr-defined]
+        assert p.initial_stock == Decimal("0")
 
     def test_unit_case_insensitive(self) -> None:
         p = ProductCreate(name="Milk", unit="L")

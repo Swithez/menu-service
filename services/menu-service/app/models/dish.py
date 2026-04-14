@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, Numeric, String, Text, func
@@ -59,7 +59,9 @@ class PriceHistory(Base):
     old_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     new_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     changed_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
     )
 
     dish: Mapped["Dish"] = relationship("Dish", back_populates="price_history")

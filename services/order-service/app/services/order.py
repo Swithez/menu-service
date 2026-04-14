@@ -5,6 +5,7 @@ Inter-service calls (menu-service for dish info, warehouse-service for stock
 deduction on close) use httpx synchronous client so Flask stays synchronous.
 """
 import uuid
+from decimal import Decimal
 from http import HTTPStatus
 
 import httpx
@@ -78,7 +79,7 @@ class OrderService:
                 dish_id=item_data.dish_id,
                 dish_name=dish["name"],
                 quantity=item_data.quantity,
-                price_at_order=dish["price"],
+                price_at_order=Decimal(str(dish["price"])),
                 notes=item_data.notes,
             )
             order.items.append(order_item)

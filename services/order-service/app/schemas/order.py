@@ -5,6 +5,7 @@ Used for request validation (type-driven) and response serialisation.
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import ClassVar
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -42,7 +43,7 @@ class OrderStatusTransitionSchema(BaseModel):
 
     status: OrderStatus
 
-    ALLOWED_TRANSITIONS: dict[OrderStatus, set[OrderStatus]] = {
+    ALLOWED_TRANSITIONS: ClassVar[dict[OrderStatus, set[OrderStatus]]] = {
         OrderStatus.CREATED: {OrderStatus.IN_PROGRESS, OrderStatus.CANCELLED},
         OrderStatus.IN_PROGRESS: {OrderStatus.READY, OrderStatus.CANCELLED},
         OrderStatus.READY: {OrderStatus.CLOSED},
