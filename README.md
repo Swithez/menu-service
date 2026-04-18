@@ -1,20 +1,20 @@
-# Restaurant Menu Microservice System
+# Система микросервисов ресторанного меню
 
-## Documentation
+## Документация
 
-| Document | Description |
+| Документ | Описание |
 |----------|-------------|
-| [API Reference](docs/api.md) | All endpoints, request/response schemas, error codes |
-| [Architecture & ADRs](docs/architecture.md) | Design decisions, layer diagram, inter-service communication |
-| [Development Guide](docs/development.md) | Setup, running tests, environment variables, workflow examples |
-| [ERD](docs/erd.puml) | Entity Relationship Diagram (PlantUML) |
-| [C4 — System Context](docs/c4_context.puml) | C4 Level 1: actors and systems |
-| [C4 — Containers](docs/c4_container.puml) | C4 Level 2: services, databases, communication |
-| [C4 — Components](docs/c4_component.puml) | C4 Level 3: internal structure of menu-service |
+| [Справочник API](docs/api.md) | Все эндпоинты, схемы запросов/ответов, коды ошибок |
+| [Руководство по разработке](docs/development.md) | Настройка, запуск тестов, переменные окружения, примеры рабочих процессов |
+| [Каталог функций FDD](docs/fdd-features.md) | Авторитетный справочник функций с привязкой к тест-классам |
+| [ERD](docs/erd.puml) | Диаграмма сущностей (PlantUML) |
+| [C4 — System Context](docs/c4_context.puml) | C4 Уровень 1: акторы и системы |
+| [C4 — Containers](docs/c4_container.puml) | C4 Уровень 2: сервисы, базы данных, коммуникация |
+| [C4 — Components](docs/c4_component.puml) | C4 Уровень 3: внутренняя структура menu-service |
 
-> Render `.puml` files at **[PlantText](https://www.planttext.com)** or **[PlantUML online](https://plantuml.com/plantuml)**.
+> Откройте `.puml` файлы на **[PlantText](https://www.planttext.com)** или **[PlantUML online](https://plantuml.com/plantuml)**.
 
-## Architecture
+## Архитектура
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
@@ -22,23 +22,23 @@
 │                                                                      │
 │  ┌───────────────────────────────────────────────────────────────┐   │
 │  │                web-ui  (Flask : 8888)                         │   │
-│  │  • Browser-facing HTML interface                              │   │
-│  │  • Reads JWT from session, proxies requests to all APIs       │   │
+│  │  • HTML-интерфейс для браузера                                │   │
+│  │  • Читает JWT из сессии, проксирует запросы ко всем API       │   │
 │  └──────┬──────────┬──────────────┬────────────────┬─────────────┘   │
 │         │          │              │                │                  │
 │  ┌──────▼──────┐ ┌─▼────────────┐ │         ┌──────▼──────────────┐  │
 │  │menu-service │ │warehouse-    │ │         │  auth-service        │  │
 │  │(FastAPI:8001│ │service       │ │         │  (FastAPI : 8004)    │  │
-│  │• Categories │ │(FastAPI:8002)│ │         │  • JWT login         │  │
-│  │• Dishes     │ │• Products    │ │         │  • Users CRUD        │  │
-│  │• Prices     │ │• Stock       │ │         │  • Roles & perms     │  │
-│  │  DB:menu_db │ │  movements   │ │         │  DB: auth_db         │  │
+│  │• Категории  │ │(FastAPI:8002)│ │         │  • JWT авторизация   │  │
+│  │• Блюда      │ │• Продукты    │ │         │  • CRUD пользователей│  │
+│  │• Цены       │ │• Остатки     │ │         │  • Роли и права      │  │
+│  │  DB:menu_db │ │  движения    │ │         │  DB: auth_db         │  │
 │  └─────────────┘ │  DB:wh_db   │ │         └──────────────────────┘  │
 │                  └─────────────┘ │                                    │
 │                        ┌─────────▼──────────────┐                    │
 │                        │  order-service          │                    │
 │                        │  (Flask : 8003)         │                    │
-│                        │  • Orders lifecycle     │                    │
+│                        │  • Жизненный цикл заказов                   │
 │                        │  CREATED→IN_PROGRESS    │                    │
 │                        │        →READY→CLOSED    │                    │
 │                        │  DB: order_db           │                    │
@@ -46,147 +46,140 @@
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
-## Services
+## Сервисы
 
-| Service              | Tech     | Port | Responsibility                           |
-|----------------------|----------|------|------------------------------------------|
-| `menu-service`       | FastAPI  | 8001 | Menu: categories, dishes, prices, kcal   |
-| `warehouse-service`  | FastAPI  | 8002 | Stock: products, movements, low-stock    |
-| `order-service`      | Flask    | 8003 | Orders: create, take, close, cancel      |
-| `auth-service`       | FastAPI  | 8004 | Auth: JWT, users, roles, permissions     |
-| `web-ui`             | Flask    | 8888 | Browser UI for all services              |
+| Сервис               | Технология | Порт | Ответственность                                   |
+|----------------------|------------|------|---------------------------------------------------|
+| `menu-service`       | FastAPI    | 8001 | Меню: категории, блюда, история цен               |
+| `warehouse-service`  | FastAPI    | 8002 | Склад: продукты, движения запаса, низкий остаток  |
+| `order-service`      | Flask      | 8003 | Заказы: создание, взятие, готовность, закрытие    |
+| `auth-service`       | FastAPI    | 8004 | Авторизация: JWT, пользователи, роли, права       |
+| `web-ui`             | Flask      | 8888 | Браузерный интерфейс для всех сервисов            |
 
-## Quick Start
+## Быстрый старт
 
 ```bash
-# Copy environment variables
+# Скопировать переменные окружения
 cp .env.example .env
 
-# Start all services
-docker compose up --build
+# Запустить все сервисы (Docker)
+make up
+# или: docker compose up --build
 
-# Health checks
+# Проверка работоспособности
 curl http://localhost:8001/health   # menu-service
 curl http://localhost:8002/health   # warehouse-service
 curl http://localhost:8003/health   # order-service
 curl http://localhost:8004/health   # auth-service
 
-# Web interface
-open http://localhost:8888          # Login with admin@restaurant.local / admin123
+# Веб-интерфейс
+open http://localhost:8888          # Войти: admin@restaurant.local / admin123
 ```
 
-## API Summary
+## Тестирование
 
-### Auth Service (FastAPI — port 8004)
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/v1/auth/login` | Obtain JWT token |
-| GET | `/api/v1/auth/me` | Current user info |
-| GET | `/api/v1/users` | List users |
-| POST | `/api/v1/users` | Create user |
-| GET | `/api/v1/users/{id}` | Get user |
-| PATCH | `/api/v1/users/{id}` | Update user |
-| DELETE | `/api/v1/users/{id}` | Delete user |
-| GET | `/api/v1/roles` | List roles |
-| POST | `/api/v1/roles` | Create role |
-| GET | `/api/v1/roles/{id}` | Get role with permissions |
-| PATCH | `/api/v1/roles/{id}` | Update role |
-| PUT | `/api/v1/roles/{id}/permissions` | Replace role permissions |
-| DELETE | `/api/v1/roles/{id}` | Delete role |
-| GET | `/api/v1/permissions` | List all permissions |
-| GET | `/api/v1/permissions/groups` | Permissions grouped by domain |
+У каждого сервиса два набора тестов (SQLite в памяти — Docker не нужен):
 
-### Menu Service (FastAPI — port 8001)
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/v1/categories/` | Create category |
-| GET | `/api/v1/categories/` | List categories |
-| GET | `/api/v1/categories/{id}` | Get category |
-| PATCH | `/api/v1/categories/{id}` | Update category |
-| DELETE | `/api/v1/categories/{id}` | Delete category |
-| POST | `/api/v1/dishes/` | Create dish |
-| GET | `/api/v1/dishes/` | List dishes (filter by category, availability) |
-| GET | `/api/v1/dishes/{id}` | Get dish |
-| PATCH | `/api/v1/dishes/{id}` | Update dish |
-| PATCH | `/api/v1/dishes/{id}/price` | Update price (records history) |
-| GET | `/api/v1/dishes/{id}/price-history` | Price change log |
-| DELETE | `/api/v1/dishes/{id}` | Delete dish |
+### Доменные тесты (`tests/domain/`) — DDD
+Проверяют бизнес-правила в полной изоляции: агрегаты, схемы Pydantic, машину состояний.
+Без HTTP, без базы данных.
 
-### Warehouse Service (FastAPI — port 8002)
-| Method | Path | Description |
-|--------|------|-------------|
-| POST | `/api/v1/products/` | Create product |
-| GET | `/api/v1/products/` | List products (filter low-stock) |
-| GET | `/api/v1/products/{id}` | Get product |
-| PATCH | `/api/v1/products/{id}` | Update product |
-| POST | `/api/v1/products/{id}/stock` | Adjust stock (INCOMING/OUTGOING/WRITE_OFF) |
-| GET | `/api/v1/products/{id}/movements` | Stock movement history |
-| DELETE | `/api/v1/products/{id}` | Delete product |
+### Функциональные тесты (`tests/features/`) — FDD
+Проверяют полные HTTP-потоки через тестовый клиент.
+Фокус: жизненный цикл, обработка ошибок, фильтрация.
 
-### Order Service (Flask — port 8003)
-| Method | Path | Description |
+```bash
+# Все тесты (без Docker)
+make test
+
+# По отдельному сервису
+make test-menu
+make test-warehouse
+make test-order
+make test-auth
+
+# С отчётом о покрытии
+make cov-order
+```
+
+## Сводка API
+
+### Auth Service (FastAPI — порт 8004)
+| Метод | Путь | Описание |
 |--------|------|-------------|
-| POST | `/api/v1/orders/` | Create order |
-| GET | `/api/v1/orders/` | List orders (filter by status, table) |
-| GET | `/api/v1/orders/{id}` | Get order |
-| PATCH | `/api/v1/orders/{id}/status` | Generic status transition |
+| POST | `/api/v1/auth/login` | Получить JWT-токен |
+| GET | `/api/v1/auth/me` | Информация о текущем пользователе |
+| GET | `/api/v1/users` | Список пользователей |
+| POST | `/api/v1/users` | Создать пользователя |
+| GET | `/api/v1/users/{id}` | Получить пользователя |
+| PATCH | `/api/v1/users/{id}` | Обновить пользователя |
+| DELETE | `/api/v1/users/{id}` | Удалить пользователя |
+| GET | `/api/v1/roles` | Список ролей |
+| POST | `/api/v1/roles` | Создать роль |
+| GET | `/api/v1/roles/{id}` | Получить роль с правами |
+| PATCH | `/api/v1/roles/{id}` | Обновить роль |
+| PUT | `/api/v1/roles/{id}/permissions` | Заменить права роли |
+| DELETE | `/api/v1/roles/{id}` | Удалить роль |
+| GET | `/api/v1/permissions` | Список всех прав |
+| GET | `/api/v1/permissions/groups` | Права, сгруппированные по домену |
+
+### Menu Service (FastAPI — порт 8001)
+| Метод | Путь | Описание |
+|--------|------|-------------|
+| POST | `/api/v1/categories/` | Создать категорию |
+| GET | `/api/v1/categories/` | Список категорий |
+| GET | `/api/v1/categories/{id}` | Получить категорию |
+| PATCH | `/api/v1/categories/{id}` | Обновить категорию |
+| DELETE | `/api/v1/categories/{id}` | Удалить категорию |
+| POST | `/api/v1/dishes/` | Создать блюдо |
+| GET | `/api/v1/dishes/` | Список блюд (фильтр по категории, доступности) |
+| GET | `/api/v1/dishes/{id}` | Получить блюдо |
+| PATCH | `/api/v1/dishes/{id}` | Обновить блюдо (не цену) |
+| PATCH | `/api/v1/dishes/{id}/price` | Обновить цену (записывает историю) |
+| GET | `/api/v1/dishes/{id}/price-history` | История изменений цены |
+| DELETE | `/api/v1/dishes/{id}` | Удалить блюдо |
+
+### Warehouse Service (FastAPI — порт 8002)
+| Метод | Путь | Описание |
+|--------|------|-------------|
+| POST | `/api/v1/products/` | Создать продукт |
+| GET | `/api/v1/products/` | Список продуктов (фильтр по низкому запасу) |
+| GET | `/api/v1/products/{id}` | Получить продукт |
+| PATCH | `/api/v1/products/{id}` | Обновить продукт |
+| POST | `/api/v1/products/{id}/stock` | Изменить остаток (INCOMING/OUTGOING/WRITE_OFF) |
+| GET | `/api/v1/products/{id}/movements` | История движений склада |
+| DELETE | `/api/v1/products/{id}` | Удалить продукт |
+
+### Order Service (Flask — порт 8003)
+| Метод | Путь | Описание |
+|--------|------|-------------|
+| POST | `/api/v1/orders/` | Создать заказ |
+| GET | `/api/v1/orders/` | Список заказов (фильтр по статусу, столику) |
+| GET | `/api/v1/orders/{id}` | Получить заказ |
+| PATCH | `/api/v1/orders/{id}/status` | Универсальный переход статуса |
 | POST | `/api/v1/orders/{id}/take` | CREATED → IN_PROGRESS |
 | POST | `/api/v1/orders/{id}/ready` | IN_PROGRESS → READY |
 | POST | `/api/v1/orders/{id}/close` | READY → CLOSED |
-| POST | `/api/v1/orders/{id}/cancel` | Any → CANCELLED |
-| DELETE | `/api/v1/orders/{id}` | Delete order |
+| POST | `/api/v1/orders/{id}/cancel` | Любой → CANCELLED |
+| DELETE | `/api/v1/orders/{id}` | Удалить заказ |
 
-## Testing
-
-Each service has two test suites:
-
-### Type-Driven Tests (`tests/types/`)
-Validate Pydantic schemas in isolation — no DB, no HTTP.
-Focus: type constraints, field validators, value ranges.
-
-```bash
-cd services/menu-service && pytest tests/types/
-cd services/warehouse-service && pytest tests/types/
-cd services/order-service && pytest tests/types/
-cd services/auth-service && pytest tests/types/
-```
-
-### Feature-Driven Tests (`tests/features/`)
-Test complete HTTP flows through the service using test clients.
-Focus: business rules, lifecycle, error cases, filtering.
-
-```bash
-cd services/menu-service && pytest tests/features/
-cd services/warehouse-service && pytest tests/features/
-cd services/order-service && pytest tests/features/
-cd services/auth-service && pytest tests/features/
-```
-
-### Run all tests with coverage
-```bash
-cd services/menu-service && pytest --cov=app
-cd services/warehouse-service && pytest --cov=app
-cd services/order-service && pytest --cov=app
-cd services/auth-service && pytest --cov=app
-```
-
-## Database Schema
+## Схема базы данных
 
 ### auth_db
-- `permissions` — code (PK), description, group (seeded from code, not editable via API)
+- `permissions` — code (PK), description, group
 - `roles` — id, name, description, is_system, created_at
-- `role_permissions` — role_id, permission_code (composite PK)
+- `role_permissions` — role_id, permission_code (составной PK)
 - `users` — id, email, full_name, hashed_password, role_id, is_active, timestamps
 
 ### menu_db
 - `categories` — id, name, description, is_active, timestamps
-- `dishes` — id, category_id, name, price, calories, proteins, fats, carbs, weight_grams, is_available, image_url, timestamps
+- `dishes` — id, category_id, name, description, price, is_available, image_url, timestamps
 - `price_history` — id, dish_id, old_price, new_price, changed_at
 
 ### warehouse_db
-- `products` — id, name, unit, calories_per_unit, current_stock, min_stock_level, cost_price, timestamps
+- `products` — id, name, unit, current_stock, min_stock_level, cost_price, timestamps
 - `stock_movements` — id, product_id, quantity, movement_type (INCOMING/OUTGOING/WRITE_OFF), reason, order_id, created_at
 
 ### order_db
 - `orders` — id, table_number, customer_name, status, notes, total_amount, taken_at, closed_at, timestamps
-- `order_items` — id, order_id, dish_id, dish_name (snapshot), quantity, price_at_order (snapshot), notes
+- `order_items` — id, order_id, dish_id, dish_name (снимок), quantity, price_at_order (снимок), notes

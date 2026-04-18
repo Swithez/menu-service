@@ -12,7 +12,6 @@ VALID_UNITS = {"kg", "g", "l", "ml", "pcs", "tbsp", "tsp"}
 class ProductBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     unit: str = Field(..., description=f"Unit of measure. Allowed: {VALID_UNITS}")
-    calories_per_unit: Decimal | None = Field(None, ge=0)
     min_stock_level: Decimal = Field(Decimal("0"), ge=0)
     cost_price: Decimal | None = Field(None, gt=0)
 

@@ -43,4 +43,8 @@ def create_app(testing: bool = False) -> Flask:
     def service_unavailable(exc):  # type: ignore[no-untyped-def]
         return jsonify({"detail": str(exc)}), 503
 
+    @app.errorhandler(500)
+    def internal_error(exc):  # type: ignore[no-untyped-def]
+        return jsonify({"detail": "Internal server error", "error": str(exc)}), 500
+
     return app

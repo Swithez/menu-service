@@ -35,7 +35,7 @@ class OrderService:
                 abort(HTTPStatus.NOT_FOUND, description=f"Dish {dish_id} not found in menu")
             resp.raise_for_status()
             return resp.json()
-        except httpx.RequestError:
+        except (httpx.RequestError, httpx.HTTPStatusError):
             abort(
                 HTTPStatus.SERVICE_UNAVAILABLE,
                 description="Menu service is unavailable",

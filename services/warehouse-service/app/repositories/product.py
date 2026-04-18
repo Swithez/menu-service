@@ -17,7 +17,6 @@ class ProductRepository:
         product = Product(
             name=data.name,
             unit=data.unit,
-            calories_per_unit=data.calories_per_unit,
             min_stock_level=data.min_stock_level,
             cost_price=data.cost_price,
             current_stock=data.initial_stock,

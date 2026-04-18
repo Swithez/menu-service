@@ -130,11 +130,16 @@ function addItem() {
   if (existing) {
     existing.qty += qty;
     renderItems();
+    sel.selectedIndex = 0;
+    document.getElementById('dishQty').value = '1';
+    document.getElementById('dishNote').value = '';
     return;
   }
 
   items.push({ dishId, name, price, qty, note });
   renderItems();
+  sel.selectedIndex = 0;
+  document.getElementById('dishQty').value = '1';
   document.getElementById('dishNote').value = '';
 }
 

@@ -148,10 +148,6 @@
                       <label class="form-label">Себестоимость (₽)</label>
                       <input name="cost_price" class="form-control" type="number" step="0.01" value="{{ p.cost_price or '' }}">
                     </div>
-                    <div class="col-12">
-                      <label class="form-label">Калории / ед.</label>
-                      <input name="calories_per_unit" class="form-control" type="number" step="0.01" value="{{ p.calories_per_unit or '' }}">
-                    </div>
                   </div>
                 </div>
                 <div class="modal-footer">
@@ -234,10 +230,6 @@
             <div class="col-6">
               <label class="form-label">Себестоимость (₽)</label>
               <input name="cost_price" class="form-control" type="number" step="0.01" min="0.01" placeholder="0.00">
-            </div>
-            <div class="col-6">
-              <label class="form-label">Калории / ед.</label>
-              <input name="calories_per_unit" class="form-control" type="number" step="0.01" min="0" placeholder="0.00">
             </div>
           </div>
         </div>

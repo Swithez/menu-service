@@ -35,8 +35,6 @@ def create_product():
         data["min_stock_level"] = v
     if v := _v("cost_price"):
         data["cost_price"] = v
-    if v := _v("calories_per_unit"):
-        data["calories_per_unit"] = v
     if v := _v("initial_stock"):
         data["initial_stock"] = v
     try:
@@ -62,8 +60,6 @@ def update_product(product_id: str):
         data["min_stock_level"] = v
     if v := _v("cost_price"):
         data["cost_price"] = v
-    if v := _v("calories_per_unit"):
-        data["calories_per_unit"] = v
 
     if not data:
         flash("No fields to update.", "warning")

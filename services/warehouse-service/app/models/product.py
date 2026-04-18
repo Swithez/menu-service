@@ -25,7 +25,6 @@ class Product(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False, unique=True, index=True)
     unit: Mapped[str] = mapped_column(String(50), nullable=False)  # kg, g, l, ml, pcs
-    calories_per_unit: Mapped[Decimal | None] = mapped_column(Numeric(8, 2), nullable=True)
     current_stock: Mapped[Decimal] = mapped_column(
         Numeric(12, 3), default=Decimal("0"), nullable=False
     )

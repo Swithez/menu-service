@@ -5,16 +5,6 @@ from decimal import Decimal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 
-class NutritionInfo(BaseModel):
-    """Nutritional data per 100g serving."""
-
-    calories: int | None = Field(None, ge=0, le=10000, description="kcal per 100g")
-    proteins: Decimal | None = Field(None, ge=0, le=999, decimal_places=2)
-    fats: Decimal | None = Field(None, ge=0, le=999, decimal_places=2)
-    carbohydrates: Decimal | None = Field(None, ge=0, le=999, decimal_places=2)
-    weight_grams: int | None = Field(None, ge=1, le=10000, description="Dish weight in grams")
-
-
 class DishBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: str | None = Field(None, max_length=2000)
@@ -40,11 +30,7 @@ class DishBase(BaseModel):
 
 
 class DishCreate(DishBase):
-    calories: int | None = Field(None, ge=0, le=10000)
-    proteins: Decimal | None = Field(None, ge=0, decimal_places=2)
-    fats: Decimal | None = Field(None, ge=0, decimal_places=2)
-    carbohydrates: Decimal | None = Field(None, ge=0, decimal_places=2)
-    weight_grams: int | None = Field(None, ge=1)
+    pass
 
 
 class DishUpdate(BaseModel):
@@ -53,11 +39,6 @@ class DishUpdate(BaseModel):
     category_id: uuid.UUID | None = None
     is_available: bool | None = None
     image_url: str | None = None
-    calories: int | None = Field(None, ge=0, le=10000)
-    proteins: Decimal | None = Field(None, ge=0, decimal_places=2)
-    fats: Decimal | None = Field(None, ge=0, decimal_places=2)
-    carbohydrates: Decimal | None = Field(None, ge=0, decimal_places=2)
-    weight_grams: int | None = Field(None, ge=1)
 
     @model_validator(mode="after")
     def at_least_one_field(self) -> "DishUpdate":
@@ -91,10 +72,5 @@ class DishResponse(DishBase):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
-    calories: int | None
-    proteins: Decimal | None
-    fats: Decimal | None
-    carbohydrates: Decimal | None
-    weight_grams: int | None
     created_at: datetime
     updated_at: datetime

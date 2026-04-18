@@ -1,56 +1,56 @@
-@startuml C4 Level 1 — System Context
+@startuml C4 Уровень 1 — Контекст системы
 
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
 
 LAYOUT_WITH_LEGEND()
 LAYOUT_TOP_DOWN()
 
-title C4 Model — Level 1: System Context\nRestaurant Menu Microservice System
+title C4 Модель — Уровень 1: Контекст системы\nСистема управления меню ресторана микросервисами
 
 ' ──────────────────────────────────────────────
-'  Persons
+'  Люди
 ' ──────────────────────────────────────────────
-Person(manager,   "Restaurant Manager",  "Manages the menu, prices,\ncategories and warehouse stock")
-Person(waiter,    "Waiter / Cashier",    "Creates orders, takes them\ninto work and closes them")
-Person(chef,      "Kitchen Chef",        "Sees orders in progress\nand marks them as READY")
-Person(developer, "Developer / DevOps",  "Deploys, monitors and\nmaintains the system")
+Person(manager,   "Менеджер ресторана",  "Управляет меню, ценами,\nкатегориями и запасом на складе")
+Person(waiter,    "Официант / Кассир",    "Создает заказы, берет их\nв работу и закрывает их")
+Person(chef,      "Повар кухни",        "Видит заказы в процессе\nи отмечает их как ГОТОВЫ")
+Person(developer, "Разработчик / DevOps",  "Развертывает, контролирует и\nподдерживает систему")
 
 ' ──────────────────────────────────────────────
-'  System boundary
+'  Граница системы
 ' ──────────────────────────────────────────────
-System_Boundary(rms, "Restaurant Menu System") {
-    System(menu_sys,      "Menu Service",      "Manages categories, dishes,\nprices and nutritional info")
-    System(warehouse_sys, "Warehouse Service", "Tracks ingredient stock,\nmovements and low-stock alerts")
-    System(order_sys,     "Order Service",     "Handles full order lifecycle:\ncreate → take → ready → close")
+System_Boundary(rms, "Система управления меню ресторана") {
+    System(menu_sys,      "Сервис меню",      "Управляет категориями, блюдами,\nценами и информацией о питательности")
+    System(warehouse_sys, "Сервис склада", "Отслеживает запас ингредиентов,\nдвижения и уведомления низкого запаса")
+    System(order_sys,     "Сервис заказов",     "Обрабатывает полный жизненный цикл заказа:\nсоздание → взяток → готовность → закрытие")
 }
 
 ' ──────────────────────────────────────────────
-'  External systems (future)
+'  Внешние системы (будущее)
 ' ──────────────────────────────────────────────
-System_Ext(pos,        "POS Terminal",       "Point-of-sale hardware\n(future integration)")
-System_Ext(supplier,   "Supplier Portal",    "Automatic stock replenishment\n(future integration)")
-System_Ext(analytics,  "Analytics Platform", "Sales and waste reports\n(future integration)")
+System_Ext(pos,        "POS-терминал",       "Оборудование для продаж\n(будущая интеграция)")
+System_Ext(supplier,   "Портал поставщика",    "Автоматическое пополнение запаса\n(будущая интеграция)")
+System_Ext(analytics,  "Платформа аналитики", "Отчеты по продажам и потерям\n(будущая интеграция)")
 
 ' ──────────────────────────────────────────────
-'  Relationships — people → system
+'  Отношения — люди → система
 ' ──────────────────────────────────────────────
-Rel(manager,   menu_sys,      "Manages dishes, prices, categories", "REST / JSON")
-Rel(manager,   warehouse_sys, "Manages products, adjusts stock",    "REST / JSON")
-Rel(waiter,    order_sys,     "Creates and closes orders",          "REST / JSON")
-Rel(chef,      order_sys,     "Takes orders into work, marks ready","REST / JSON")
-Rel(developer, rms,           "Deploys & monitors",                 "Docker / SSH")
+Rel(manager,   menu_sys,      "Управляет блюдами, ценами, категориями", "REST / JSON")
+Rel(manager,   warehouse_sys, "Управляет продуктами, регулирует запас",    "REST / JSON")
+Rel(waiter,    order_sys,     "Создает и закрывает заказы",          "REST / JSON")
+Rel(chef,      order_sys,     "Берет заказы в работу, отмечает готовыми","REST / JSON")
+Rel(developer, rms,           "Развертывает и контролирует",                 "Docker / SSH")
 
 ' ──────────────────────────────────────────────
-'  Relationships — system → system
+'  Отношения — система → система
 ' ──────────────────────────────────────────────
-Rel(order_sys,     menu_sys,      "Fetches dish details\n& validates availability", "HTTP GET")
-Rel(order_sys,     warehouse_sys, "Triggers stock deduction\non order close",        "HTTP POST")
+Rel(order_sys,     menu_sys,      "Получает детали блюда\nи проверяет доступность", "HTTP GET")
+Rel(order_sys,     warehouse_sys, "Запускает списание запаса\nпри закрытии заказа",        "HTTP POST")
 
 ' ──────────────────────────────────────────────
-'  Relationships — external
+'  Отношения — внешние
 ' ──────────────────────────────────────────────
-Rel_Back(pos,      order_sys,     "Receives order totals",      "REST (planned)")
-Rel_Back(supplier, warehouse_sys, "Pushes incoming deliveries", "Webhook (planned)")
-Rel_Back(analytics,rms,           "Reads aggregated data",      "Read replica (planned)")
+Rel_Back(pos,      order_sys,     "Получает суммы заказов",      "REST (планируется)")
+Rel_Back(supplier, warehouse_sys, "Отправляет входящие доставки", "Webhook (планируется)")
+Rel_Back(analytics,rms,           "Читает агрегированные данные",      "Read replica (планируется)")
 
 @enduml

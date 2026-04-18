@@ -42,7 +42,7 @@
           <td class="font-monospace text-muted" style="font-size:.75rem">{{ o.id[:8] }}…</td>
           <td>{% if o.table_number %}<span class="badge bg-secondary">{{ o.table_number }}</span>{% else %}—{% endif %}</td>
           <td>{{ o.customer_name or '—' }}</td>
-          <td>{{ o.items|length }}</td>
+          <td>{{ o['items']|length }}</td>
           <td class="fw-semibold">{{ o.total_amount|fmt_price }}</td>
           <td><span class="badge bg-{{ color }}"><i class="{{ icon }} me-1"></i>{{ o.status }}</span></td>
           <td class="text-muted small">{{ o.created_at|fmt_dt }}</td>

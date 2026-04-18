@@ -1,28 +1,28 @@
-# API Reference
+# Справочник API
 
-Base URLs (local dev / Docker Compose):
+Базовые URL (локальная разработка / Docker Compose):
 
-| Service | Base URL |
+| Сервис | Базовый URL |
 |---------|----------|
 | auth-service | `http://localhost:8004` |
 | menu-service | `http://localhost:8001` |
 | warehouse-service | `http://localhost:8002` |
 | order-service | `http://localhost:8003` |
 
-All endpoints consume and produce `application/json`.  
-UUIDs use the standard `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` format.  
-Decimal fields (price, stock) are returned as JSON strings with fixed precision.
+Все конечные точки используют и выдают `application/json`.  
+UUID используют стандартный формат `xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`.  
+Десятичные поля (цена, запас) возвращаются как JSON-строки с фиксированной точностью.
 
 ---
 
 ## auth-service  `/api/v1`
 
-### Authentication
+### Аутентификация
 
 #### `POST /auth/login`
-Obtain a JWT access token.
+Получить JWT-токен доступа.
 
-**Request body**
+**Тело запроса**
 ```json
 {
   "email": "admin@restaurant.local",
@@ -30,15 +30,15 @@ Obtain a JWT access token.
 }
 ```
 
-**Responses**
+**Ответы**
 
-| Code | Description |
+| Код | Описание |
 |------|-------------|
-| 200 | Token issued |
-| 401 | Invalid email or password |
-| 403 | Account is disabled |
+| 200 | Токен выдан |
+| 401 | Неверный email или пароль |
+| 403 | Аккаунт отключён |
 
-**Response body** (`TokenResponse`)
+**Тело ответа** (`TokenResponse`)
 ```json
 {
   "access_token": "<jwt>",
@@ -50,27 +50,27 @@ Obtain a JWT access token.
 ---
 
 #### `GET /auth/me`
-Return info about the currently authenticated user.
+Вернуть информацию об аутентифицированном пользователе.
 
-Requires: `Authorization: Bearer <token>` header.
+Требуется: заголовок `Authorization: Bearer <token>`.
 
-**Responses:** `200` UserResponse · `401` No / invalid token · `404` User deleted
+**Ответы:** `200` UserResponse · `401` Нет / неверный токен · `404` Пользователь удалён
 
 ---
 
-### Users
+### Пользователи
 
-All user management endpoints require the `users:users:manage` permission.
+Все конечные точки управления пользователями требуют разрешения `users:users:manage`.
 
 #### `GET /users`
-List all users. Returns `200` array of `UserResponse`.
+Список всех пользователей. Возвращает массив `UserResponse` с кодом `200`.
 
 ---
 
 #### `POST /users`
-Create a new user.
+Создать нового пользователя.
 
-**Request body**
+**Тело запроса**
 ```json
 {
   "email": "waiter@restaurant.local",
@@ -81,27 +81,27 @@ Create a new user.
 }
 ```
 
-| Field | Type | Required | Constraints |
+| Поле | Тип | Обязательное | Ограничения |
 |-------|------|----------|-------------|
-| `email` | string | yes | valid email, unique |
-| `full_name` | string | yes | 1–255 chars |
-| `password` | string | yes | 6–128 chars |
-| `role_id` | UUID | no | must exist |
-| `is_active` | boolean | no | default `true` |
+| `email` | string | да | валидный email, уникальный |
+| `full_name` | string | да | 1–255 символов |
+| `password` | string | да | 6–128 символов |
+| `role_id` | UUID | нет | должна существовать |
+| `is_active` | boolean | нет | по умолчанию `true` |
 
-**Responses:** `201` UserResponse · `409` Email already exists · `422` Validation error
+**Ответы:** `201` UserResponse · `409` Email уже существует · `422` Ошибка валидации
 
 ---
 
 #### `GET /users/{user_id}`
-Get a single user by ID.
+Получить одного пользователя по ID.
 
-**Responses:** `200` UserResponse · `404` Not found
+**Ответы:** `200` UserResponse · `404` Не найден
 
 ---
 
 #### `PATCH /users/{user_id}`
-Partially update a user. At least one field required.
+Частичное обновление пользователя. Требуется хотя бы одно поле.
 
 ```json
 {
@@ -112,18 +112,18 @@ Partially update a user. At least one field required.
 }
 ```
 
-**Responses:** `200` UserResponse · `404` Not found · `409` Email conflict · `422` Validation error
+**Ответы:** `200` UserResponse · `404` Не найден · `409` Конфликт email · `422` Ошибка валидации
 
 ---
 
 #### `DELETE /users/{user_id}`
-Delete a user.
+Удалить пользователя.
 
-**Responses:** `204` No content · `404` Not found
+**Ответы:** `204` Без содержимого · `404` Не найден
 
 ---
 
-**`UserResponse` schema**
+**Схема `UserResponse`**
 ```json
 {
   "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
@@ -139,17 +139,17 @@ Delete a user.
 
 ---
 
-### Roles
+### Роли
 
-All role management endpoints require the `users:roles:manage` permission.
+Все конечные точки управления ролями требуют разрешения `users:roles:manage`.
 
 #### `GET /roles`
-List all roles. Returns `200` array of `RoleResponse`.
+Список всех ролей. Возвращает массив `RoleResponse` с кодом `200`.
 
 ---
 
 #### `POST /roles`
-Create a new role.
+Создать новую роль.
 
 ```json
 {
@@ -159,47 +159,47 @@ Create a new role.
 }
 ```
 
-**Responses:** `201` RoleDetailResponse · `409` Name already exists · `422` Validation error
+**Ответы:** `201` RoleDetailResponse · `409` Имя уже существует · `422` Ошибка валидации
 
 ---
 
 #### `GET /roles/{role_id}`
-Get a role with its full permission list.
+Получить роль со своим полным списком разрешений.
 
-**Responses:** `200` RoleDetailResponse · `404` Not found
+**Ответы:** `200` RoleDetailResponse · `404` Не найдена
 
 ---
 
 #### `PATCH /roles/{role_id}`
-Update role name or description (not permissions).
+Обновить имя или описание роли (не разрешения).
 
 ```json
 { "name": "senior-waiter", "description": "Старший официант" }
 ```
 
-**Responses:** `200` RoleDetailResponse · `404` Not found · `409` Name conflict · `422` Validation error
+**Ответы:** `200` RoleDetailResponse · `404` Не найдена · `409` Конфликт имени · `422` Ошибка валидации
 
 ---
 
 #### `PUT /roles/{role_id}/permissions`
-Replace the full set of permissions for a role. Provide an array of permission codes.
+Заменить весь набор разрешений для роли. Предоставьте массив кодов разрешений.
 
 ```json
 ["orders:create", "orders:read:own", "orders:take", "orders:ready"]
 ```
 
-**Responses:** `200` RoleDetailResponse · `404` Not found · `422` Unknown permission code
+**Ответы:** `200` RoleDetailResponse · `404` Не найдена · `422` Неизвестный код разрешения
 
 ---
 
 #### `DELETE /roles/{role_id}`
-Delete a role. Fails if the role is a system role (`is_system=true`) or has assigned users.
+Удалить роль. Ошибка, если роль системная (`is_system=true`) или имеет назначенных пользователей.
 
-**Responses:** `204` No content · `404` Not found · `409` Role is system or has users
+**Ответы:** `204` Без содержимого · `404` Не найдена · `409` Роль системная или имеет пользователей
 
 ---
 
-**`RoleResponse` schema**
+**Схема `RoleResponse`**
 ```json
 {
   "id": "...",
@@ -211,7 +211,7 @@ Delete a role. Fails if the role is a system role (`is_system=true`) or has assi
 }
 ```
 
-**`RoleDetailResponse`** extends `RoleResponse` with a `permissions` array:
+**`RoleDetailResponse`** расширяет `RoleResponse` массивом `permissions`:
 ```json
 {
   "permissions": [
@@ -222,14 +222,14 @@ Delete a role. Fails if the role is a system role (`is_system=true`) or has assi
 
 ---
 
-### Permissions
+### Разрешения
 
-Require `users:roles:manage` permission.
+Требуют разрешение `users:roles:manage`.
 
 #### `GET /permissions`
-List all permissions defined in the system.
+Список всех разрешений, определённых в системе.
 
-**Response** — `200` array of `PermissionSchema`
+**Ответ** — массив `PermissionSchema` с кодом `200`
 ```json
 [
   { "code": "menu:categories:read", "description": "Просмотр категорий", "group": "Меню" }
@@ -239,22 +239,22 @@ List all permissions defined in the system.
 ---
 
 #### `GET /permissions/groups`
-Return permissions grouped by domain.
+Вернуть разрешения, сгруппированные по домену.
 
 ```json
 {
-  "Меню": [ { "code": "menu:categories:read", ... } ],
-  "Склад": [ ... ],
-  "Заказы": [ ... ],
-  "Пользователи": [ ... ]
+  "Меню": [ { "code": "menu:categories:read", "description": "..." } ],
+  "Склад": [ "..." ],
+  "Заказы": [ "..." ],
+  "Пользователи": [ "..." ]
 }
 ```
 
 ---
 
-### Full Permission List
+### Полный список разрешений
 
-| Code | Description | Group |
+| Код | Описание | Группа |
 |------|-------------|-------|
 | `menu:categories:read` | Просмотр категорий | Меню |
 | `menu:categories:write` | Управление категориями | Меню |
@@ -285,40 +285,40 @@ Return permissions grouped by domain.
 
 ## menu-service  `/api/v1`
 
-### Categories
+### Категории
 
 #### `POST /categories/`
-Create a new menu category.
+Создать новую категорию меню.
 
-**Request body**
+**Тело запроса**
 ```json
 {
-  "name": "Hot Dishes",
-  "description": "Warm main courses",
+  "name": "Горячие блюда",
+  "description": "Тёплые основные блюда",
   "is_active": true
 }
 ```
 
-| Field | Type | Required | Constraints |
+| Поле | Тип | Обязательное | Ограничения |
 |-------|------|----------|-------------|
-| `name` | string | yes | 1–255 chars, stripped, unique |
-| `description` | string | no | max 2000 chars |
-| `is_active` | boolean | no | default `true` |
+| `name` | string | да | 1–255 символов, обрезается, уникально |
+| `description` | string | нет | макс 2000 символов |
+| `is_active` | boolean | нет | по умолчанию `true` |
 
-**Responses**
+**Ответы**
 
-| Code | Description |
+| Код | Описание |
 |------|-------------|
-| 201 | Category created — returns `CategoryResponse` |
-| 409 | Name already exists |
-| 422 | Validation error |
+| 201 | Категория создана — возвращает `CategoryResponse` |
+| 409 | Имя уже существует |
+| 422 | Ошибка валидации |
 
-**Response body** (`CategoryResponse`)
+**Тело ответа** (`CategoryResponse`)
 ```json
 {
   "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "name": "Hot Dishes",
-  "description": "Warm main courses",
+  "name": "Горячие блюда",
+  "description": "Тёплые основные блюда",
   "is_active": true,
   "created_at": "2026-04-13T10:00:00Z",
   "updated_at": "2026-04-13T10:00:00Z"
@@ -328,142 +328,134 @@ Create a new menu category.
 ---
 
 #### `GET /categories/`
-List all categories.
+Список всех категорий.
 
-**Query parameters**
+**Параметры запроса**
 
-| Param | Type | Description |
+| Параметр | Тип | Описание |
 |-------|------|-------------|
-| `active_only` | boolean | If `true`, returns only `is_active=true` categories |
+| `active_only` | boolean | Если `true`, возвращает только категории с `is_active=true` |
 
-**Response** — `200` array of `CategoryResponse`
+**Ответ** — массив `CategoryResponse` с кодом `200`
 
 ---
 
 #### `GET /categories/{id}`
-Get a single category by ID.
+Получить одну категорию по ID.
 
-**Responses:** `200` CategoryResponse · `404` Not found
+**Ответы:** `200` CategoryResponse · `404` Не найдена
 
 ---
 
 #### `PATCH /categories/{id}`
-Partially update a category.
+Частичное обновление категории.
 
-**Request body** (all fields optional)
 ```json
 {
-  "name": "New Name",
-  "description": "Updated description",
+  "name": "Салаты",
   "is_active": false
 }
 ```
 
-**Responses:** `200` CategoryResponse · `404` Not found · `409` Name conflict · `422` Validation error
+**Ответы:** `200` CategoryResponse · `404` Не найдена · `422` Ошибка валидации
 
 ---
 
 #### `DELETE /categories/{id}`
-Delete a category. Dishes that referenced it will have `category_id = NULL`.
+Удалить категорию.
 
-**Responses:** `204` No content · `404` Not found
+**Ответы:** `204` Без содержимого · `404` Не найдена
 
 ---
 
-### Dishes
+### Блюда
 
 #### `POST /dishes/`
-Create a new dish.
+Создать новое блюдо.
 
-**Request body**
+**Тело запроса**
 ```json
 {
-  "name": "Grilled Salmon",
-  "description": "Atlantic salmon, lemon butter",
-  "price": "850.00",
+  "name": "Борщ",
+  "description": "Традиционный суп со свёклой и капустой",
+  "price": "150.00",
   "category_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
   "is_available": true,
-  "image_url": "https://example.com/salmon.jpg",
-  "calories": 280,
-  "proteins": "25.00",
-  "fats": "18.00",
-  "carbohydrates": "0.50",
-  "weight_grams": 200
+  "image_url": "https://example.com/borscht.jpg"
 }
 ```
 
-| Field | Type | Required | Constraints |
+| Поле | Тип | Обязательное | Ограничения |
 |-------|------|----------|-------------|
-| `name` | string | yes | 1–255 chars |
-| `price` | decimal | yes | > 0 |
-| `category_id` | UUID | no | must exist in categories |
-| `calories` | integer | no | 0–10 000 kcal |
-| `proteins` / `fats` / `carbohydrates` | decimal | no | ≥ 0, 2 d.p. |
-| `weight_grams` | integer | no | ≥ 1 |
+| `name` | string | да | 1–255 символов |
+| `price` | decimal | да | > 0 |
+| `description` | string | нет | макс 2000 символов |
+| `category_id` | UUID | нет | должна существовать в категориях |
+| `is_available` | boolean | нет | по умолчанию `true` |
+| `image_url` | string | нет | URL изображения |
 
-**Responses:** `201` DishResponse · `404` Category not found · `422` Validation error
+**Ответы:** `201` DishResponse · `404` Категория не найдена · `422` Ошибка валидации
 
 ---
 
 #### `GET /dishes/`
-List dishes with optional filters.
+Список блюд с опциональными фильтрами.
 
-**Query parameters**
+**Параметры запроса**
 
-| Param | Type | Description |
+| Параметр | Тип | Описание |
 |-------|------|-------------|
-| `category_id` | UUID | Filter by category |
-| `available_only` | boolean | Only `is_available=true` dishes |
+| `category_id` | UUID | Фильтр по категории |
+| `available_only` | boolean | Только блюда с `is_available=true` |
 
-**Response** — `200` array of `DishResponse`
+**Ответ** — массив `DishResponse` с кодом `200`
 
 ---
 
 #### `GET /dishes/{id}`
-**Responses:** `200` DishResponse · `404` Not found
+**Ответы:** `200` DishResponse · `404` Не найдено
 
 ---
 
 #### `PATCH /dishes/{id}`
-Update dish metadata (NOT price — use `/price` endpoint).  
-At least one field must be provided.
+Обновить метаданные блюда. **Цена через этот эндпоинт не изменяется** — используйте `/price`.  
+Требуется хотя бы одно поле.
 
 ```json
 {
   "is_available": false,
-  "calories": 310,
-  "weight_grams": 250
+  "description": "Новое описание"
 }
 ```
 
-**Responses:** `200` DishResponse · `404` Not found · `422` Validation error
+**Ответы:** `200` DishResponse · `404` Не найдено · `422` Ошибка валидации
 
 ---
 
 #### `PATCH /dishes/{id}/price`
-Update dish price. Automatically records a `PriceHistory` entry if the price changes.
+Обновить цену блюда. Автоматически записывает `PriceHistory`, если цена изменилась.
 
 ```json
-{ "price": "950.00" }
+{ "price": "180.00" }
 ```
 
-**Responses:** `200` DishResponse (with new price) · `404` Not found · `422` Validation error
+**Ответы:** `200` DishResponse (с новой ценой) · `404` Не найдено · `422` Ошибка валидации
 
-> Sending the same price as the current one is idempotent — no history entry is created.
+> Отправка той же цены идемпотентна — запись истории не создаётся.
 
 ---
 
 #### `GET /dishes/{id}/price-history`
-Returns all price changes for a dish, newest first.
+Вернуть все изменения цены для блюда, самые новые первыми.
 
-**Response** — `200` array of `PriceHistoryResponse`
+**Ответ** — массив `PriceHistoryResponse` с кодом `200`
 ```json
 [
   {
     "id": "...",
     "dish_id": "...",
-    "old_price": "850.00",
-    "new_price": "950.00",
+    "old_price": "150.00",
+    "new_price": "180.00",
     "changed_at": "2026-04-13T12:00:00Z"
   }
 ]
@@ -472,49 +464,64 @@ Returns all price changes for a dish, newest first.
 ---
 
 #### `DELETE /dishes/{id}`
-**Responses:** `204` No content · `404` Not found
+**Ответы:** `204` Без содержимого · `404` Не найдено
+
+---
+
+**Схема `DishResponse`**
+```json
+{
+  "id": "...",
+  "name": "Борщ",
+  "description": "Традиционный суп",
+  "price": "150.00",
+  "category_id": "...",
+  "is_available": true,
+  "image_url": null,
+  "created_at": "2026-04-13T10:00:00Z",
+  "updated_at": "2026-04-13T10:00:00Z"
+}
+```
 
 ---
 
 ## warehouse-service  `/api/v1`
 
-### Products
+### Продукты
 
 #### `POST /products/`
-Register a new product (ingredient) in the warehouse.
+Зарегистрировать новый продукт (ингредиент) на складе.
 
 ```json
 {
-  "name": "Salmon fillet",
+  "name": "Филе лосося",
   "unit": "kg",
-  "calories_per_unit": 180.00,
   "min_stock_level": "5.000",
   "cost_price": "1200.00",
   "initial_stock": "20.000"
 }
 ```
 
-| Field | Type | Required | Constraints |
+| Поле | Тип | Обязательное | Ограничения |
 |-------|------|----------|-------------|
-| `name` | string | yes | unique, 1–255 chars |
-| `unit` | string | yes | one of: `kg g l ml pcs tbsp tsp` |
-| `initial_stock` | decimal | no | ≥ 0, default 0 |
-| `min_stock_level` | decimal | no | ≥ 0 |
-| `cost_price` | decimal | no | > 0 |
+| `name` | string | да | уникально, 1–255 символов |
+| `unit` | string | да | одно из: `kg g l ml pcs tbsp tsp` |
+| `initial_stock` | decimal | нет | ≥ 0, по умолчанию 0 |
+| `min_stock_level` | decimal | нет | ≥ 0 |
+| `cost_price` | decimal | нет | > 0 |
 
-If `initial_stock > 0`, an automatic `INCOMING` movement is recorded.
+Если `initial_stock > 0`, автоматически записывается движение типа `INCOMING`.
 
-**Responses:** `201` ProductResponse · `409` Name conflict · `422` Validation error
+**Ответы:** `201` ProductResponse · `409` Конфликт имени · `422` Ошибка валидации
 
 ---
 
-**`ProductResponse` schema**
+**Схема `ProductResponse`**
 ```json
 {
   "id": "...",
-  "name": "Salmon fillet",
+  "name": "Филе лосося",
   "unit": "kg",
-  "calories_per_unit": 180.00,
   "current_stock": "20.000",
   "min_stock_level": "5.000",
   "cost_price": "1200.00",
@@ -523,51 +530,52 @@ If `initial_stock > 0`, an automatic `INCOMING` movement is recorded.
   "updated_at": "..."
 }
 ```
-`is_low_stock` = `current_stock ≤ min_stock_level` (computed property, not stored).
+
+`is_low_stock` = `current_stock ≤ min_stock_level` (вычисляемое свойство, не сохраняется в БД).
 
 ---
 
 #### `GET /products/`
 
-| Param | Type | Description |
+| Параметр | Тип | Описание |
 |-------|------|-------------|
-| `low_stock_only` | boolean | Returns only products where `current_stock ≤ min_stock_level` |
+| `low_stock_only` | boolean | Возвращает только продукты, где `current_stock ≤ min_stock_level` |
 
-**Response** — `200` array of `ProductResponse`
+**Ответ** — массив `ProductResponse` с кодом `200`
 
 ---
 
 #### `GET /products/{id}` · `PATCH /products/{id}` · `DELETE /products/{id}`
-Standard CRUD. PATCH requires at least one field.
+Стандартный CRUD. PATCH требует хотя бы одно поле.
 
 ---
 
 #### `POST /products/{id}/stock`
-Adjust stock level. Creates a `StockMovement` record.
+Корректировать уровень запаса. Создаёт запись `StockMovement`.
 
 ```json
 {
   "quantity": "15.500",
   "movement_type": "INCOMING",
-  "reason": "Supplier delivery #4421",
+  "reason": "Поставка поставщика №4421",
   "order_id": null
 }
 ```
 
-| `movement_type` | Effect on stock | `reason` / `order_id` required |
+| `movement_type` | Влияние на запас | Требуется `reason` / `order_id` |
 |----------------|-----------------|-------------------------------|
-| `INCOMING` | `+quantity` | No |
-| `OUTGOING` | `-quantity` | Yes (reason OR order_id) |
-| `WRITE_OFF` | `-quantity` | Yes (reason OR order_id) |
+| `INCOMING` | `+quantity` | Нет |
+| `OUTGOING` | `-quantity` | Да (reason ИЛИ order_id) |
+| `WRITE_OFF` | `-quantity` | Да (reason ИЛИ order_id) |
 
-`quantity` must be non-zero. Attempting to go below 0 returns `422`.
+`quantity` должно быть ненулевым. Попытка опуститься ниже 0 возвращает `422`.
 
-**Responses:** `200` ProductResponse (with updated stock) · `404` Not found · `422` Insufficient stock / validation error
+**Ответы:** `200` ProductResponse (с обновлённым запасом) · `404` Не найдено · `422` Недостаточно запаса / ошибка валидации
 
 ---
 
 #### `GET /products/{id}/movements`
-Returns all stock movements for a product, newest first.
+Вернуть все движения запаса для продукта, самые новые первыми.
 
 ```json
 [
@@ -576,7 +584,7 @@ Returns all stock movements for a product, newest first.
     "product_id": "...",
     "quantity": "15.500",
     "movement_type": "INCOMING",
-    "reason": "Supplier delivery #4421",
+    "reason": "Поставка поставщика №4421",
     "order_id": null,
     "created_at": "..."
   }
@@ -587,117 +595,117 @@ Returns all stock movements for a product, newest first.
 
 ## order-service  `/api/v1`
 
-### Order Status Machine
+### Машина состояний заказа
 
 ```
-            cancel
+            отмена
   CREATED ─────────────────────────────► CANCELLED
      │                                       ▲
-  take │    cancel                            │
+  взять │    отмена                           │
      ▼ ──────────────────────────────────────┘
   IN_PROGRESS
-     │    cancel ──────────────────────────────┘
-  ready │
+     │    отмена ──────────────────────────────┘
+  готово │
      ▼
    READY
      │
-  close │
+  закрыть │
      ▼
-  CLOSED  (terminal — no transitions allowed)
+  CLOSED  (терминальное — переходы не допускаются)
 ```
 
 ---
 
-### Orders
+### Заказы
 
 #### `POST /orders/`
-Create a new order. Validates each dish via `menu-service`.
+Создать новый заказ. Проверяет каждое блюдо через `menu-service`.
 
 ```json
 {
   "table_number": 5,
-  "customer_name": "Ivan Petrov",
-  "notes": "No onions please",
+  "customer_name": "Иван Петров",
+  "notes": "Без лука, пожалуйста",
   "items": [
-    { "dish_id": "...", "quantity": 2, "notes": "Well done" },
+    { "dish_id": "...", "quantity": 2, "notes": "Хорошо прожаренный" },
     { "dish_id": "...", "quantity": 1 }
   ]
 }
 ```
 
-| Field | Type | Required | Constraints |
+| Поле | Тип | Обязательное | Ограничения |
 |-------|------|----------|-------------|
-| `items` | array | yes | min 1 item |
-| `items[].dish_id` | UUID | yes | must exist and be available in menu-service |
-| `items[].quantity` | integer | yes | 1–100 |
-| `table_number` | integer | no | 1–999 |
+| `items` | array | да | мин 1 позиция |
+| `items[].dish_id` | UUID | да | должно существовать и быть доступным в menu-service |
+| `items[].quantity` | integer | да | 1–100 |
+| `table_number` | integer | нет | 1–999 |
 
-**Price and dish name are snapshotted** from `menu-service` at creation time.  
+**Цена и имя блюда снимаются как снимок** из `menu-service` во время создания заказа.  
 `total_amount` = Σ(`price_at_order × quantity`).
 
-**Responses:** `201` OrderResponse · `404` Dish not found · `422` Dish unavailable / validation error · `503` menu-service unavailable
+**Ответы:** `201` OrderResponse · `404` Блюдо не найдено · `422` Блюдо недоступно / ошибка валидации · `503` menu-service недоступен
 
 ---
 
 #### `GET /orders/`
 
-| Param | Type | Description |
+| Параметр | Тип | Описание |
 |-------|------|-------------|
-| `status` | string | Filter by status (CREATED, IN_PROGRESS, READY, CLOSED, CANCELLED) |
-| `table_number` | integer | Filter by table |
-| `limit` | integer | Max results (default 100, max 200) |
-| `offset` | integer | Pagination offset (default 0) |
+| `status` | string | Фильтр по статусу (CREATED, IN_PROGRESS, READY, CLOSED, CANCELLED) |
+| `table_number` | integer | Фильтр по номеру стола |
+| `limit` | integer | Макс. результатов (по умолчанию 100, макс. 200) |
+| `offset` | integer | Смещение для пагинации (по умолчанию 0) |
 
 ---
 
-#### `GET /orders/{id}` — `200` OrderResponse · `404` Not found
+#### `GET /orders/{id}` — `200` OrderResponse · `404` Не найдено
 
 ---
 
 #### `PATCH /orders/{id}/status`
-Generic status transition. Validates allowed transitions.
+Универсальный переход статуса. Проверяет допустимые переходы.
 
 ```json
 { "status": "IN_PROGRESS" }
 ```
 
-**Responses:** `200` OrderResponse · `404` Not found · `422` Invalid transition
+**Ответы:** `200` OrderResponse · `404` Не найдено · `422` Недопустимый переход
 
 ---
 
 #### `POST /orders/{id}/take`
-Shortcut: `CREATED → IN_PROGRESS`. Sets `taken_at`.
+Сокращение: `CREATED → IN_PROGRESS`. Устанавливает `taken_at`.
 
 #### `POST /orders/{id}/ready`
-Shortcut: `IN_PROGRESS → READY`.
+Сокращение: `IN_PROGRESS → READY`.
 
 #### `POST /orders/{id}/close`
-Shortcut: `READY → CLOSED`. Sets `closed_at`. Triggers warehouse stock deduction.
+Сокращение: `READY → CLOSED`. Устанавливает `closed_at`. Запускает списание запаса на складе.
 
 #### `POST /orders/{id}/cancel`
-`CREATED | IN_PROGRESS | READY → CANCELLED`. Sets `closed_at`.
+`CREATED | IN_PROGRESS | READY → CANCELLED`. Устанавливает `closed_at`.
 
-#### `DELETE /orders/{id}` — `204` No content
+#### `DELETE /orders/{id}` — `204` Без содержимого
 
 ---
 
-**`OrderResponse` schema**
+**Схема `OrderResponse`**
 ```json
 {
   "id": "...",
   "table_number": 5,
-  "customer_name": "Ivan Petrov",
+  "customer_name": "Иван Петров",
   "status": "CREATED",
-  "notes": "No onions please",
-  "total_amount": "1700.00",
+  "notes": "Без лука, пожалуйста",
+  "total_amount": "300.00",
   "items": [
     {
       "id": "...",
       "dish_id": "...",
-      "dish_name": "Grilled Salmon",
+      "dish_name": "Борщ",
       "quantity": 2,
-      "price_at_order": "850.00",
-      "notes": "Well done"
+      "price_at_order": "150.00",
+      "notes": null
     }
   ],
   "created_at": "2026-04-13T10:00:00Z",
@@ -709,22 +717,22 @@ Shortcut: `READY → CLOSED`. Sets `closed_at`. Triggers warehouse stock deducti
 
 ---
 
-## Error Response Format
+## Формат ответа об ошибке
 
-All services return errors in this shape:
+Все сервисы возвращают ошибки в этом формате:
 
 ```json
-{ "detail": "Human-readable description" }
+{ "detail": "Описание ошибки" }
 ```
 
-Validation errors (422) return the full Pydantic error list:
+Ошибки валидации (422) возвращают полный список ошибок Pydantic:
 ```json
 {
   "detail": [
     {
       "type": "value_error",
       "loc": ["body", "price"],
-      "msg": "Price must be greater than zero",
+      "msg": "Цена должна быть больше нуля",
       "input": "-50"
     }
   ]

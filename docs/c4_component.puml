@@ -1,11 +1,11 @@
-@startuml C4 Level 3 — Component Diagram (menu-service)
+@startuml C4 Уровень 3 — Диаграмма компонента (menu-service)
 
 !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
 
 LAYOUT_WITH_LEGEND()
 LAYOUT_TOP_DOWN()
 
-title C4 Model — Level 3: Component Diagram\nmenu-service (FastAPI)
+title C4 Модель — Уровень 3: Диаграмма компонента\nmenu-service (FastAPI)
 
 AddElementTag("router",  $bgColor="#5DADE2", $fontColor="white", $borderColor="#1A5276")
 AddElementTag("service", $bgColor="#48C9B0", $fontColor="white", $borderColor="#117A65")
@@ -13,70 +13,70 @@ AddElementTag("repo",    $bgColor="#F1948A", $fontColor="white", $borderColor="#
 AddElementTag("schema",  $bgColor="#F7DC6F", $fontColor="#333",  $borderColor="#B7950B")
 AddElementTag("model",   $bgColor="#BB8FCE", $fontColor="white", $borderColor="#6C3483")
 
-Person(client, "API Client", "Any HTTP client:\ncurl, Postman, frontend, other service")
+Person(client, "HTTP клиент", "Любой HTTP клиент:\ncurl, Postman, frontend, другой сервис")
 ContainerDb(menu_db, "menu_db", "PostgreSQL 16", "categories, dishes, price_history")
 
 Container_Boundary(menu_api, "menu-service  :8001  (FastAPI)") {
 
-    ' ── Routers / Controllers ─────────────────
-    Component(cat_router,  "CategoriesRouter",   "FastAPI APIRouter\nPATH: /api/v1/categories",
-              "Create, read, update, delete\ncategories; active-only filter", $tags="router")
+    ' ── Маршруты / Контроллеры ─────────────────
+    Component(cat_router,  "CategoriesRouter",   "FastAPI APIRouter\nПATH: /api/v1/categories",
+              "Создание, чтение, обновление, удаление\nкатегорий; фильтр только активные", $tags="router")
 
     Component(dish_router, "DishesRouter",       "FastAPI APIRouter\nPATH: /api/v1/dishes",
-              "Create, read, update, delete dishes;\nfilter by category/availability;\nprice update + price history", $tags="router")
+              "Создание, чтение, обновление, удаление блюд;\nфильтр по категории/доступности;\nобновление цены + история цены", $tags="router")
 
-    ' ── Services / Business Logic ─────────────
-    Component(cat_svc,  "CategoryService",  "Python class",
-              "Name uniqueness check;\ncreate, list, update, delete", $tags="service")
+    ' ── Сервисы / Бизнес-логика ─────────────────
+    Component(cat_svc,  "CategoryService",  "Python класс",
+              "Проверка уникальности имени;\nсоздание, список, обновление, удаление", $tags="service")
 
-    Component(dish_svc, "DishService",      "Python class",
-              "Category existence check;\ncreate, list, update, delete;\nprice snapshot logic", $tags="service")
+    Component(dish_svc, "DishService",      "Python класс",
+              "Проверка существования категории;\nсоздание, список, обновление, удаление;\nлогика снимка цены", $tags="service")
 
-    ' ── Repositories / Data Access ────────────
+    ' ── Репозитории / Доступ к данным ────────────
     Component(cat_repo,  "CategoryRepository",  "SQLAlchemy async",
               "get_by_id, get_by_name,\nlist_all, create, update, delete", $tags="repo")
 
     Component(dish_repo, "DishRepository",      "SQLAlchemy async",
-              "CRUD + update_price\n(writes PriceHistory record),\nget_price_history", $tags="repo")
+              "CRUD + update_price\n(записывает PriceHistory),\nget_price_history", $tags="repo")
 
-    ' ── Pydantic Schemas ──────────────────────
+    ' ── Pydantic схемы ──────────────────────────
     Component(cat_schema,  "CategoryCreate / Update / Response", "Pydantic v2 BaseModel",
-              "Validates: name strip, min/max length,\nis_active coercion", $tags="schema")
+              "Валидирует: обрезание имени, мин/макс длина,\nприведение is_active", $tags="schema")
 
     Component(dish_schema, "DishCreate / Update / PriceUpdate", "Pydantic v2 BaseModel",
-              "Validates: price > 0, calories 0-10000,\nnutrition decimals, at-least-one-field", $tags="schema")
+              "Валидирует: цена > 0, калории 0-10000,\nдесятичные числа питания, хотя бы одно поле", $tags="schema")
 
-    ' ── ORM Models ────────────────────────────
-    Component(cat_model,   "Category",     "SQLAlchemy Mapped model",
+    ' ── ORM модели ────────────────────────────
+    Component(cat_model,   "Category",     "SQLAlchemy Mapped модель",
               "id, name, description,\nis_active, timestamps", $tags="model")
 
-    Component(dish_model,  "Dish",         "SQLAlchemy Mapped model",
+    Component(dish_model,  "Dish",         "SQLAlchemy Mapped модель",
               "id, category_id, name, price,\ncalories, proteins, fats, carbs,\nweight_grams, is_available", $tags="model")
 
-    Component(price_model, "PriceHistory", "SQLAlchemy Mapped model",
+    Component(price_model, "PriceHistory", "SQLAlchemy Mapped модель",
               "id, dish_id, old_price,\nnew_price, changed_at", $tags="model")
 }
 
-' ── Request flow ──────────────────────────────
-Rel(client, cat_router,  "HTTP request",  "JSON")
-Rel(client, dish_router, "HTTP request",  "JSON")
+' ── Поток запроса ──────────────────────────────
+Rel(client, cat_router,  "HTTP запрос",  "JSON")
+Rel(client, dish_router, "HTTP запрос",  "JSON")
 
-Rel(cat_router,  cat_schema,  "validates input via")
-Rel(dish_router, dish_schema, "validates input via")
+Rel(cat_router,  cat_schema,  "валидирует ввод через")
+Rel(dish_router, dish_schema, "валидирует ввод через")
 
-Rel(cat_router,  cat_svc,  "delegates to")
-Rel(dish_router, dish_svc, "delegates to")
+Rel(cat_router,  cat_svc,  "делегирует")
+Rel(dish_router, dish_svc, "делегирует")
 
-Rel(cat_svc,  cat_repo,  "calls")
-Rel(dish_svc, dish_repo, "calls")
-Rel(dish_svc, cat_repo,  "checks category existence")
+Rel(cat_svc,  cat_repo,  "вызывает")
+Rel(dish_svc, dish_repo, "вызывает")
+Rel(dish_svc, cat_repo,  "проверяет существование категории")
 
-Rel(cat_repo,  cat_model,   "maps to/from")
-Rel(dish_repo, dish_model,  "maps to/from")
-Rel(dish_repo, price_model, "writes on price change")
+Rel(cat_repo,  cat_model,   "отображает в/из")
+Rel(dish_repo, dish_model,  "отображает в/из")
+Rel(dish_repo, price_model, "записывает при изменении цены")
 
-Rel(cat_model,   menu_db, "persisted in", "asyncpg")
-Rel(dish_model,  menu_db, "persisted in", "asyncpg")
-Rel(price_model, menu_db, "persisted in", "asyncpg")
+Rel(cat_model,   menu_db, "сохраняется в", "asyncpg")
+Rel(dish_model,  menu_db, "сохраняется в", "asyncpg")
+Rel(price_model, menu_db, "сохраняется в", "asyncpg")
 
 @enduml

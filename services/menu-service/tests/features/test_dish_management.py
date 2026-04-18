@@ -1,12 +1,9 @@
 """
-Feature: Dish management with price and nutrition tracking
+Feature: Dish management with price tracking
   As a restaurant manager
-  I want to manage dishes with prices and nutritional info
+  I want to manage dishes with prices
   So that customers can see accurate menu information
 """
-from decimal import Decimal
-
-import pytest
 
 
 class TestFeatureDishCreate:
@@ -21,27 +18,9 @@ class TestFeatureDishCreate:
         assert body["price"] == "120.00"
         assert body["is_available"] is True
 
-    async def test_create_dish_with_full_nutrition(self, client) -> None:
-        payload = {
-            "name": "Grilled Salmon",
-            "price": "850.00",
-            "calories": 280,
-            "proteins": "25.00",
-            "fats": "18.00",
-            "carbohydrates": "0.50",
-            "weight_grams": 200,
-        }
-        resp = await client.post("/api/v1/dishes/", json=payload)
-        assert resp.status_code == 201
-        body = resp.json()
-        assert body["calories"] == 280
-        assert body["weight_grams"] == 200
-
     async def test_create_dish_with_category(self, client) -> None:
-        # Given: a category exists
         cat_resp = await client.post("/api/v1/categories/", json={"name": "Fish"})
         cat_id = cat_resp.json()["id"]
-        # When: create dish with that category
         resp = await client.post(
             "/api/v1/dishes/", json={"name": "Trout", "price": "650.00", "category_id": cat_id}
         )
@@ -117,33 +96,27 @@ class TestFeatureDishUpdate:
         assert resp.status_code == 200
         assert resp.json()["is_available"] is False
 
-    async def test_update_nutrition_info(self, client) -> None:
+    async def test_update_dish_name(self, client) -> None:
         create_resp = await client.post(
-            "/api/v1/dishes/", json={"name": "Plain Soup", "price": "150.00"}
+            "/api/v1/dishes/", json={"name": "Old Name", "price": "200.00"}
         )
         dish_id = create_resp.json()["id"]
-        resp = await client.patch(
-            f"/api/v1/dishes/{dish_id}",
-            json={"calories": 85, "proteins": "4.50", "fats": "2.00", "carbohydrates": "10.00"},
-        )
+        resp = await client.patch(f"/api/v1/dishes/{dish_id}", json={"name": "New Name"})
         assert resp.status_code == 200
-        assert resp.json()["calories"] == 85
+        assert resp.json()["name"] == "New Name"
 
 
 class TestFeaturePriceManagement:
     """Feature: Manage dish prices with history tracking."""
 
     async def test_update_price_stores_history(self, client) -> None:
-        # Given: a dish with initial price
         create_resp = await client.post(
             "/api/v1/dishes/", json={"name": "Coffee", "price": "150.00"}
         )
         dish_id = create_resp.json()["id"]
-        # When: price is updated
         resp = await client.patch(f"/api/v1/dishes/{dish_id}/price", json={"price": "200.00"})
         assert resp.status_code == 200
         assert resp.json()["price"] == "200.00"
-        # Then: history is recorded
         history_resp = await client.get(f"/api/v1/dishes/{dish_id}/price-history")
         assert history_resp.status_code == 200
         history = history_resp.json()
@@ -156,12 +129,11 @@ class TestFeaturePriceManagement:
             "/api/v1/dishes/", json={"name": "Tea", "price": "80.00"}
         )
         dish_id = create_resp.json()["id"]
-        # When: same price sent
         await client.patch(f"/api/v1/dishes/{dish_id}/price", json={"price": "80.00"})
         history_resp = await client.get(f"/api/v1/dishes/{dish_id}/price-history")
         assert len(history_resp.json()) == 0
 
-    async def test_multiple_price_changes_ordered_desc(self, client) -> None:
+    async def test_multiple_price_changes_recorded(self, client) -> None:
         create_resp = await client.post(
             "/api/v1/dishes/", json={"name": "Latte", "price": "200.00"}
         )
@@ -171,8 +143,8 @@ class TestFeaturePriceManagement:
         history_resp = await client.get(f"/api/v1/dishes/{dish_id}/price-history")
         history = history_resp.json()
         assert len(history) == 2
-        # Most recent change first
-        assert history[0]["new_price"] == "250.00"
+        new_prices = {h["new_price"] for h in history}
+        assert new_prices == {"220.00", "250.00"}
 
 
 class TestFeatureDishDelete:

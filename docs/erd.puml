@@ -1,7 +1,7 @@
-@startuml ERD — Restaurant Menu Microservice System
+@startuml ERD — Система управления меню ресторана микросервисами
 
 ' ──────────────────────────────────────────────
-'  Styles
+'  Стили
 ' ──────────────────────────────────────────────
 skinparam linetype ortho
 skinparam roundcorner 8
@@ -32,11 +32,11 @@ skinparam note {
 }
 
 ' ══════════════════════════════════════════════
-'  DATABASE: menu_db
+'  БД: menu_db
 ' ══════════════════════════════════════════════
 package "menu_db" #E8F4FD {
 
-    entity "categories" <<menu>> {
+    entity "категории" <<menu>> {
         * id            : UUID         <<PK>>
         --
         * name          : VARCHAR(255) <<UNIQUE>>
@@ -46,7 +46,7 @@ package "menu_db" #E8F4FD {
         * updated_at     : TIMESTAMPTZ
     }
 
-    entity "dishes" <<menu>> {
+    entity "блюда" <<menu>> {
         * id            : UUID         <<PK>>
         --
           category_id   : UUID         <<FK → categories.id>>
@@ -64,7 +64,7 @@ package "menu_db" #E8F4FD {
         * updated_at     : TIMESTAMPTZ
     }
 
-    entity "price_history" <<menu>> {
+    entity "история_цен" <<menu>> {
         * id         : UUID          <<PK>>
         --
         * dish_id    : UUID          <<FK → dishes.id>>
@@ -73,16 +73,16 @@ package "menu_db" #E8F4FD {
         * changed_at : TIMESTAMPTZ
     }
 
-    categories  ||--o{ dishes        : "has"
-    dishes      ||--o{ price_history : "tracks"
+    категории  ||--o{ блюда        : "содержит"
+    блюда      ||--o{ история_цен : "отслеживает"
 }
 
 ' ══════════════════════════════════════════════
-'  DATABASE: warehouse_db
+'  БД: warehouse_db
 ' ══════════════════════════════════════════════
 package "warehouse_db" #E9F7EF {
 
-    entity "products" <<warehouse>> {
+    entity "продукты" <<warehouse>> {
         * id                : UUID          <<PK>>
         --
         * name              : VARCHAR(255)  <<UNIQUE>>
@@ -95,26 +95,26 @@ package "warehouse_db" #E9F7EF {
         * updated_at         : TIMESTAMPTZ
     }
 
-    entity "stock_movements" <<warehouse>> {
+    entity "движения_запаса" <<warehouse>> {
         * id            : UUID          <<PK>>
         --
         * product_id    : UUID          <<FK → products.id>>
         * quantity      : NUMERIC(12,3)
         * movement_type : ENUM          <<INCOMING|OUTGOING|WRITE_OFF>>
           reason        : TEXT
-          order_id      : UUID          <<ref: orders.id (cross-service)>>
+          order_id      : UUID          <<ref: orders.id (кросс-сервис)>>
         * created_at     : TIMESTAMPTZ
     }
 
-    products ||--o{ stock_movements : "records"
+    продукты ||--o{ движения_запаса : "записывает"
 }
 
 ' ══════════════════════════════════════════════
-'  DATABASE: order_db
+'  БД: order_db
 ' ══════════════════════════════════════════════
 package "order_db" #FEF9E7 {
 
-    entity "orders" <<order>> {
+    entity "заказы" <<order>> {
         * id            : UUID          <<PK>>
         --
           table_number  : INTEGER
@@ -128,36 +128,36 @@ package "order_db" #FEF9E7 {
           closed_at     : TIMESTAMPTZ
     }
 
-    entity "order_items" <<order>> {
+    entity "позиции_заказа" <<order>> {
         * id             : UUID          <<PK>>
         --
         * order_id       : UUID          <<FK → orders.id>>
-        * dish_id        : UUID          <<ref: dishes.id (cross-service)>>
-        * dish_name      : VARCHAR(255)  <<snapshot>>
+        * dish_id        : UUID          <<ref: dishes.id (кросс-сервис)>>
+        * dish_name      : VARCHAR(255)  <<снимок>>
         * quantity       : INTEGER
-        * price_at_order : NUMERIC(10,2) <<snapshot>>
+        * price_at_order : NUMERIC(10,2) <<снимок>>
           notes          : TEXT
     }
 
-    orders ||--o{ order_items : "contains"
+    заказы ||--o{ позиции_заказа : "содержит"
 }
 
 ' ══════════════════════════════════════════════
-'  Cross-service logical references (dashed)
+'  Кросс-сервисные логические ссылки (пунктир)
 ' ══════════════════════════════════════════════
-dishes        ....> order_items     : "dish_id (HTTP ref)"
-dishes        ....> stock_movements : "dish_id via consume API"
+блюда        ....> позиции_заказа     : "dish_id (HTTP ссылка)"
+блюда        ....> движения_запаса : "dish_id через consume API"
 
 ' ══════════════════════════════════════════════
-'  Legend
+'  Легенда
 ' ══════════════════════════════════════════════
 legend right
-  |= Symbol |= Meaning              |
+  |= Символ |= Значение              |
   |  *       | NOT NULL              |
-  |  <<PK>>  | Primary Key (UUID)    |
-  |  <<FK>>  | Foreign Key           |
-  |  ....>   | Cross-service HTTP ref|
-  |  = val   | Default value         |
+  |  <<PK>>  | Первичный ключ (UUID)    |
+  |  <<FK>>  | Внешний ключ           |
+  |  ....>   | Кросс-сервисная HTTP ссылка|
+  |  = val   | Значение по умолчанию         |
 endlegend
 
 @enduml

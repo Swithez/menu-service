@@ -22,7 +22,6 @@ def upgrade() -> None:
         sa.Column("id", UUID(as_uuid=True), primary_key=True, server_default=sa.text("gen_random_uuid()")),
         sa.Column("name", sa.String(255), nullable=False, unique=True),
         sa.Column("unit", sa.String(50), nullable=False),
-        sa.Column("calories_per_unit", sa.Numeric(8, 2), nullable=True),
         sa.Column("current_stock", sa.Numeric(12, 3), nullable=False, server_default="0"),
         sa.Column("min_stock_level", sa.Numeric(12, 3), nullable=False, server_default="0"),
         sa.Column("cost_price", sa.Numeric(10, 2), nullable=True),

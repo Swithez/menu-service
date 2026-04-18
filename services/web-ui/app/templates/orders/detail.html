@@ -92,7 +92,7 @@
       <div class="card-body text-center">
         <div class="text-muted small mb-1">Итого</div>
         <div class="display-6 fw-bold text-success">{{ order.total_amount|fmt_price }}</div>
-        <div class="text-muted small mt-1">{{ order.items|length }} позиций</div>
+        <div class="text-muted small mt-1">{{ order['items']|length }} позиций</div>
       </div>
     </div>
   </div>
@@ -102,7 +102,7 @@
     <div class="card card-flat">
       <div class="card-header fw-semibold"><i class="bi bi-list-ul me-2"></i>Позиции заказа</div>
       <div class="card-body p-0">
-        {% if order.items %}
+        {% if order['items'] %}
         <table class="table table-hover align-middle mb-0">
           <thead class="table-light">
             <tr>
@@ -111,7 +111,7 @@
             </tr>
           </thead>
           <tbody>
-          {% for item in order.items %}
+          {% for item in order['items'] %}
             <tr>
               <td>
                 <div class="fw-semibold">{{ item.dish_name }}</div>

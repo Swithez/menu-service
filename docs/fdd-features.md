@@ -1,462 +1,466 @@
-# FDD — Feature Catalogue
+# FDD — Каталог функций
 
-> Авторитетний довідник Feature-Driven Development для екосистеми menu-service.
-> Кожен запис відповідає класу `TestFeatureXxx` у `tests/features/`.
+> Авторитетный справочник Feature-Driven Development для экосистемы menu-service.
+> Каждая запись соответствует классу `TestFeatureXxx` в `tests/features/`.
+>
+> Доменные инварианты (агрегаты, схемы, машина состояний) покрыты отдельными
+> классами `TestXxxDomain` в `tests/domain/` — см. таблицу покрытия в конце.
 
 ---
 
 ## 1. menu-service
 
-### 1.1 Category Create
-**As** a restaurant manager **I want** to create menu categories **so that** dishes can be organised by type.
+### 1.1 Создание категории
+**Как** менеджер ресторана **я хочу** создать категории меню **чтобы** блюда могли быть организованы по типам.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Валідна назва + опис | 201, тіло містить `id`, `is_active: true` |
-| Дублікат назви | 409 |
-| Пуста назва (`"   "`) | 422 |
-| Порожня назва (`""`) | 422 |
+| Валидное имя + описание | 201, тело содержит `id`, `is_active: true` |
+| Дублирующееся имя | 409 |
+| Пустое имя (`"   "`) | 422 |
+| Пустая строка (`""`) | 422 |
 
-**Покрито:** `tests/features/test_category_crud.py::TestFeatureCategoryCreate`
+**Покрыто:** `tests/features/test_category_crud.py::TestFeatureCategoryCreate`
 
 ---
 
-### 1.2 Category Read
-**As** a restaurant manager **I want** to list and retrieve categories **so that** I can see what categories exist.
+### 1.2 Чтение категории
+**Как** менеджер ресторана **я хочу** выводить и извлекать категории **чтобы** я мог видеть, какие категории существуют.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Список усіх | 200, список |
-| Отримати за ID | 200, правильний об'єкт |
-| Неіснуючий ID | 404 |
-| Фільтр `active_only=true` | тільки активні категорії |
+| Список всех | 200, список |
+| Получить по ID | 200, правильный объект |
+| Несуществующий ID | 404 |
+| Фильтр `active_only=true` | только активные категории |
 
-**Покрито:** `tests/features/test_category_crud.py::TestFeatureCategoryRead`
+**Покрыто:** `tests/features/test_category_crud.py::TestFeatureCategoryRead`
 
 ---
 
-### 1.3 Category Update
-**As** a restaurant manager **I want** to update category details **so that** I can correct names or deactivate categories.
+### 1.3 Обновление категории
+**Как** менеджер ресторана **я хочу** обновить детали категории **чтобы** я мог исправить имена или деактивировать категории.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Перейменувати категорію | 200, нова назва у відповіді |
-| Деактивувати (`is_active: false`) | 200, `is_active: false` |
-| Оновити неіснуючий ID | 404 |
+| Переименовать категорию | 200, новое имя в ответе |
+| Деактивировать (`is_active: false`) | 200, `is_active: false` |
+| Обновить несуществующий ID | 404 |
 
-**Покрито:** `tests/features/test_category_crud.py::TestFeatureCategoryUpdate`
+**Покрыто:** `tests/features/test_category_crud.py::TestFeatureCategoryUpdate`
 
 ---
 
-### 1.4 Category Delete
-**As** a restaurant manager **I want** to delete categories **so that** obsolete categories are removed.
+### 1.4 Удаление категории
+**Как** менеджер ресторана **я хочу** удалить категории **чтобы** устаревшие категории были убраны.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Видалити існуючу | 204 |
-| Наступний GET | 404 |
-| Видалити неіснуючу | 404 |
+| Удалить существующую | 204 |
+| Следующий GET | 404 |
+| Удалить несуществующую | 404 |
 
-**Покрито:** `tests/features/test_category_crud.py::TestFeatureCategoryDelete`
+**Покрыто:** `tests/features/test_category_crud.py::TestFeatureCategoryDelete`
 
 ---
 
-### 1.5 Dish Create
-**As** a restaurant manager **I want** to create dishes with prices and nutrition info **so that** the menu is complete.
+### 1.5 Создание блюда
+**Как** менеджер ресторана **я хочу** создать блюда с ценами **чтобы** меню было полным.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Мінімальний (назва + ціна) | 201, `is_available: true` |
-| З повними нутрицієнтами | 201, всі поля збережено |
-| З валідним `category_id` | 201, `category_id` встановлено |
-| З неіснуючим `category_id` | 404 |
-| Нульова ціна | 422 |
-| Від'ємна ціна | 422 |
+| Минимальный (имя + цена) | 201, `is_available: true` |
+| С валидным `category_id` | 201, `category_id` установлен |
+| С несуществующим `category_id` | 404 |
+| Нулевая цена | 422 |
+| Отрицательная цена | 422 |
 
-**Покрито:** `tests/features/test_dish_management.py::TestFeatureDishCreate`
+**Покрыто:** `tests/features/test_dish_management.py::TestFeatureDishCreate`
 
 ---
 
-### 1.6 Dish Read
-**As** a guest **I want** to browse dishes **so that** I can choose what to order.
+### 1.6 Чтение блюда
+**Как** гость **я хочу** просмотреть блюда **чтобы** я мог выбрать, что заказать.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Список страв | 200, список |
-| Отримати за ID | 200, правильний об'єкт |
-| Неіснуючий ID | 404 |
-| Фільтр `available_only=true` | тільки доступні страви |
-| Фільтр за `category_id` | тільки страви цієї категорії |
+| Список блюд | 200, список |
+| Получить по ID | 200, правильный объект |
+| Несуществующий ID | 404 |
+| Фильтр `available_only=true` | только доступные блюда |
+| Фильтр по `category_id` | только блюда этой категории |
 
-**Покрито:** `tests/features/test_dish_management.py::TestFeatureDishRead`
+**Покрыто:** `tests/features/test_dish_management.py::TestFeatureDishRead`
 
 ---
 
-### 1.7 Dish Update
-**As** a restaurant manager **I want** to update dish details **so that** information stays accurate.
+### 1.7 Обновление блюда
+**Как** менеджер ресторана **я хочу** обновить детали блюда **чтобы** информация была точной.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Позначити недоступною | 200, `is_available: false` |
-| Оновити нутрицієнти | 200, нові калорії збережено |
+| Отметить недоступным | 200, `is_available: false` |
+| Переименовать | 200, новое имя сохранено |
 
-**Покрито:** `tests/features/test_dish_management.py::TestFeatureDishUpdate`
+**Покрыто:** `tests/features/test_dish_management.py::TestFeatureDishUpdate`
 
 ---
 
-### 1.8 Price Management
-**As** a restaurant manager **I want** to change dish prices with history **so that** I can audit price changes.
+### 1.8 Управление ценой
+**Как** менеджер ресторана **я хочу** изменить цены блюд с историей **чтобы** я мог отслеживать изменения цен.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Оновлення ціни | 200, нова ціна; запис в історії |
-| Та сама ціна надіслана | 200; без запису в історії |
-| Два послідовних оновлення | 2 записи в історії, найновіший перший |
+| Обновление цены | 200, новая цена; запись в истории |
+| Та же цена отправлена | 200; нет записи в истории |
+| Два последовательных обновления | 2 записи в истории |
 
-**Покрито:** `tests/features/test_dish_management.py::TestFeaturePriceManagement`
+**Покрыто:** `tests/features/test_dish_management.py::TestFeaturePriceManagement`
 
 ---
 
-### 1.9 Dish Delete
-**As** a restaurant manager **I want** to delete dishes **so that** discontinued items are removed.
+### 1.9 Удаление блюда
+**Как** менеджер ресторана **я хочу** удалить блюда **чтобы** снятые с производства позиции были убраны.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Видалити існуючу | 204 |
-| Наступний GET | 404 |
+| Удалить существующее | 204 |
+| Следующий GET | 404 |
 
-**Покрито:** `tests/features/test_dish_management.py::TestFeatureDishDelete`
+**Покрыто:** `tests/features/test_dish_management.py::TestFeatureDishDelete`
 
 ---
 
 ## 2. auth-service
 
-### 2.1 Login
-**As** a system user **I want** to log in with email and password **so that** I receive a JWT for subsequent requests.
+### 2.1 Вход
+**Как** пользователь системы **я хочу** войти с email и паролем **чтобы** я получил JWT для последующих запросов.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Правильні дані | 200, `access_token` (JWT з 3 сегментів), `token_type: bearer`, `expires_in > 0` |
-| Невірний пароль | 401 |
-| Неіснуючий email | 401 |
-| Невірний формат email | 422 |
-| Відсутнє поле password | 422 |
-| Токен несе permissions | claim `permissions` непорожній |
+| Правильные данные | 200, `access_token` (JWT с 3 сегментами), `token_type: bearer`, `expires_in > 0` |
+| Неверный пароль | 401 |
+| Несуществующий email | 401 |
+| Неверный формат email | 422 |
+| Отсутствует поле password | 422 |
+| Токен несёт разрешения | поле `permissions` непустое |
 
-**Покрито:** `tests/features/test_auth_flow.py::TestFeatureLogin`
+**Покрыто:** `tests/features/test_auth_flow.py::TestFeatureLogin`
 
 ---
 
-### 2.2 Current User (me)
-**As** an authenticated user **I want** to retrieve my profile **so that** I can see my role and email.
+### 2.2 Текущий пользователь (me)
+**Как** аутентифицированный пользователь **я хочу** получить мой профиль **чтобы** я мог видеть мою роль и email.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Валідний токен | 200, `email`, `is_active: true`, `role_name` |
-| Без токена | 401 або 403 |
-| Невалідний токен | 401 |
-| Токен адміна | список `permissions` непорожній, містить `users:roles:manage` |
+| Валидный токен | 200, `email`, `is_active: true`, `role_name` |
+| Без токена | 401 или 403 |
+| Невалидный токен | 401 |
+| Токен администратора | список `permissions` непустой, содержит `users:roles:manage` |
 
-**Покрито:** `tests/features/test_auth_flow.py::TestFeatureMe`
+**Покрыто:** `tests/features/test_auth_flow.py::TestFeatureMe`
 
 ---
 
-### 2.3 Health Check
-**As** infrastructure **I want** a health endpoint **so that** load balancers can probe the service.
+### 2.3 Проверка работоспособности
+**Как** инфраструктура **я хочу** конечную точку здоровья **чтобы** балансировщики нагрузки могли проверить сервис.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
 | GET /health | 200, `{"status": "ok"}` |
 
-**Покрито:** `tests/features/test_auth_flow.py::TestFeatureHealth`
+**Покрыто:** `tests/features/test_auth_flow.py::TestFeatureHealth`
 
 ---
 
-### 2.4 Role List
-**As** an admin **I want** to list all roles **so that** I can see what roles exist.
+### 2.4 Список ролей
+**Как** администратор **я хочу** выводить все роли **чтобы** я мог видеть, какие роли существуют.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Авторизований | 200, список містить `admin` |
-| Неавторизований | 401 або 403 |
+| Авторизованный | 200, список содержит `admin` |
+| Неавторизованный | 401 или 403 |
 
-**Покрито:** `tests/features/test_roles.py::TestFeatureRoleList`
+**Покрыто:** `tests/features/test_roles.py::TestFeatureRoleList`
 
 ---
 
-### 2.5 Role Create
-**As** an admin **I want** to create roles with optional permissions **so that** I can group access rights.
+### 2.5 Создание роли
+**Как** администратор **я хочу** создать роли с опциональными разрешениями **чтобы** я мог группировать права доступа.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Мінімальний (тільки назва) | 201, `is_system: false`, `permissions: []` |
-| З кодами permissions | 201, список permissions заповнено |
-| Дублікат назви | 409 |
-| Пуста назва | 422 |
-| Невідомий код permission | 409 |
+| Минимальный (только имя) | 201, `is_system: false`, `permissions: []` |
+| С кодами разрешений | 201, список разрешений заполнен |
+| Дублирующееся имя | 409 |
+| Пустое имя | 422 |
+| Неизвестный код разрешения | 409 |
 
-**Покрито:** `tests/features/test_roles.py::TestFeatureRoleCreate`
+**Покрыто:** `tests/features/test_roles.py::TestFeatureRoleCreate`
 
 ---
 
-### 2.6 Role Read
-**As** an admin **I want** to get a role by ID **so that** I can inspect its permissions.
+### 2.6 Чтение роли
+**Как** администратор **я хочу** получить роль по ID **чтобы** я мог проверить её разрешения.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Валідний ID | 200, `name`, список `permissions` |
-| Неіснуючий ID | 404 |
-| Системна роль (`admin`) | `is_system: true` |
+| Валидный ID | 200, `name`, список `permissions` |
+| Несуществующий ID | 404 |
+| Системная роль (`admin`) | `is_system: true` |
 
-**Покрито:** `tests/features/test_roles.py::TestFeatureRoleRead`
+**Покрыто:** `tests/features/test_roles.py::TestFeatureRoleRead`
 
 ---
 
-### 2.7 Role Update
-**As** an admin **I want** to rename or re-describe roles **so that** I can keep names meaningful.
+### 2.7 Обновление роли
+**Как** администратор **я хочу** переименовать или изменить описание роли **чтобы** имена оставались значимыми.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Перейменувати | 200, нова назва |
-| Оновити опис | 200, новий опис |
-| Неіснуюча роль | 404 |
-| Перейменувати на існуючу назву | 409 |
+| Переименовать | 200, новое имя |
+| Обновить описание | 200, новое описание |
+| Несуществующая роль | 404 |
+| Переименовать на существующее имя | 409 |
 
-**Покрито:** `tests/features/test_roles.py::TestFeatureRoleUpdate`
+**Покрыто:** `tests/features/test_roles.py::TestFeatureRoleUpdate`
 
 ---
 
-### 2.8 Role Permissions
-**As** an admin **I want** to replace a role's permission set atomically **so that** changes are consistent.
+### 2.8 Разрешения роли
+**Как** администратор **я хочу** заменить набор разрешений роли атомарно **чтобы** изменения были согласованными.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Замінити на новий набір | 200, тільки нові коди присутні |
-| Замінити на порожній список | 200, `permissions: []` |
-| Невідомий код permission | 422 |
+| Заменить на новый набор | 200, только новые коды присутствуют |
+| Заменить на пустой список | 200, `permissions: []` |
+| Неизвестный код разрешения | 422 |
 
-**Покрито:** `tests/features/test_roles.py::TestFeatureRolePermissions`
+**Покрыто:** `tests/features/test_roles.py::TestFeatureRolePermissions`
 
 ---
 
-### 2.9 Role Delete
-**As** an admin **I want** to delete non-system roles **so that** obsolete roles are removed.
+### 2.9 Удаление роли
+**Как** администратор **я хочу** удалить не-системные роли **чтобы** устаревшие роли были убраны.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Видалити кастомну роль | 204 |
-| Наступний GET | 404 |
-| Видалити системну роль | 409 |
-| Видалити неіснуючу | 404 |
+| Удалить пользовательскую роль | 204 |
+| Следующий GET | 404 |
+| Удалить системную роль | 409 |
+| Удалить несуществующую | 404 |
 
-**Покрито:** `tests/features/test_roles.py::TestFeatureRoleDelete`
+**Покрыто:** `tests/features/test_roles.py::TestFeatureRoleDelete`
 
 ---
 
-### 2.10 User List
-**As** an admin **I want** to list all users **so that** I can manage accounts.
+### 2.10 Список пользователей
+**Как** администратор **я хочу** выводить всех пользователей **чтобы** я мог управлять аккаунтами.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Авторизований | 200, список містить seed-адміна |
-| Неавторизований | 401 або 403 |
+| Авторизованный | 200, список содержит заранее инициализированного администратора |
+| Неавторизованный | 401 или 403 |
 
-**Покрито:** `tests/features/test_users.py::TestFeatureUserList`
+**Покрыто:** `tests/features/test_users.py::TestFeatureUserList`
 
 ---
 
-### 2.11 User Create
-**As** an admin **I want** to create user accounts **so that** staff can log in.
+### 2.11 Создание пользователя
+**Как** администратор **я хочу** создать аккаунты пользователей **чтобы** персонал мог входить.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Мінімальний (email + ім'я + пароль) | 201, `is_active: true`, `role_id: null` |
-| З роллю | 201, `role_id` встановлено |
-| Дублікат email | 409 |
-| Пароль занадто короткий (< 6 символів) | 422 |
-| Невірний формат email | 422 |
+| Минимальный (email + имя + пароль) | 201, `is_active: true`, `role_id: null` |
+| С ролью | 201, `role_id` установлен |
+| Дублирующийся email | 409 |
+| Пароль слишком короткий (< 6 символов) | 422 |
+| Неверный формат email | 422 |
 | `is_active: false` | 201, `is_active: false` |
 
-**Покрито:** `tests/features/test_users.py::TestFeatureUserCreate`
+**Покрыто:** `tests/features/test_users.py::TestFeatureUserCreate`
 
 ---
 
-### 2.12 User Read
-**As** an admin **I want** to get a user by ID **so that** I can inspect their details.
+### 2.12 Чтение пользователя
+**Как** администратор **я хочу** получить пользователя по ID **чтобы** я мог проверить его данные.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Валідний ID | 200, правильний об'єкт |
-| Неіснуючий ID | 404 |
+| Валидный ID | 200, правильный объект |
+| Несуществующий ID | 404 |
 
-**Покрито:** `tests/features/test_users.py::TestFeatureUserRead`
+**Покрыто:** `tests/features/test_users.py::TestFeatureUserRead`
 
 ---
 
-### 2.13 User Update
-**As** an admin **I want** to update user accounts **so that** I can manage names, passwords, roles.
+### 2.13 Обновление пользователя
+**Как** администратор **я хочу** обновить аккаунты пользователей **чтобы** я мог управлять именами, паролями, ролями.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Оновити ім'я | 200, нове ім'я |
-| Деактивувати | 200, `is_active: false` |
-| Змінити пароль | 200 |
-| Призначити роль | 200, `role_id` встановлено |
-| Неіснуючий користувач | 404 |
-| Порожнє тіло (без полів) | 422 |
+| Обновить имя | 200, новое имя |
+| Деактивировать | 200, `is_active: false` |
+| Изменить пароль | 200 |
+| Назначить роль | 200, `role_id` установлен |
+| Несуществующий пользователь | 404 |
+| Пустое тело (без полей) | 422 |
 
-**Покрито:** `tests/features/test_users.py::TestFeatureUserUpdate`
+**Покрыто:** `tests/features/test_users.py::TestFeatureUserUpdate`
 
 ---
 
-### 2.14 User Delete
-**As** an admin **I want** to delete users **so that** former staff cannot log in.
+### 2.14 Удаление пользователя
+**Как** администратор **я хочу** удалить пользователей **чтобы** бывший персонал не мог входить.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Видалити існуючого | 204 |
-| Наступний GET | 404 |
-| Неіснуючий ID | 404 |
+| Удалить существующего | 204 |
+| Следующий GET | 404 |
+| Несуществующий ID | 404 |
 
-**Покрито:** `tests/features/test_users.py::TestFeatureUserDelete`
+**Покрыто:** `tests/features/test_users.py::TestFeatureUserDelete`
 
 ---
 
-### 2.15 Inactive User Login
-**As** the system **I want** to block inactive users from logging in **so that** deactivated accounts cannot access the API.
+### 2.15 Вход неактивного пользователя
+**Как** система **я хочу** заблокировать неактивных пользователей от входа **чтобы** деактивированные аккаунты не могли получить доступ к API.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Спроба входу неактивним юзером | 403 |
+| Попытка входа неактивным пользователем | 403 |
 
-**Покрито:** `tests/features/test_users.py::TestFeatureInactiveUserLogin`
+**Покрыто:** `tests/features/test_users.py::TestFeatureInactiveUserLogin`
 
 ---
 
 ## 3. warehouse-service
 
-### 3.1 Product Create
-**As** a warehouse manager **I want** to add products (ingredients) **so that** stock levels can be tracked.
+### 3.1 Создание продукта
+**Как** менеджер склада **я хочу** добавить продукты (ингредиенты) **чтобы** уровни запасов могли отслеживаться.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Мінімальний (назва + одиниця) | 201, `current_stock: 0` |
-| З початковим запасом | 201, `current_stock` = вказане значення |
-| Дублікат назви | 409 |
-| Невалідна одиниця | 422 |
+| Минимальный (имя + единица) | 201, `current_stock: 0` |
+| С начальным запасом | 201, `current_stock` = указанное значение |
+| Дублирующееся имя | 409 |
+| Невалидная единица измерения | 422 |
 
-**Покрито:** `tests/features/test_product_crud.py::TestFeatureProductCreate`
+**Покрыто:** `tests/features/test_product_crud.py::TestFeatureProductCreate`
 
 ---
 
-### 3.2 Stock Management
-**As** a warehouse manager **I want** to record stock movements **so that** the kitchen always knows what is available.
+### 3.2 Управление запасом
+**Как** менеджер склада **я хочу** записать движения запаса **чтобы** кухня всегда знала, что доступно.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Надходження (INCOMING) | 200, `current_stock` збільшується |
-| Витрата (OUTGOING) | 200, `current_stock` зменшується |
-| Витрата > наявного запасу | 422 |
-| Будь-який рух | записується в `/movements` |
-| Продукт нижче `min_stock_level` | з'являється у фільтрі `?low_stock_only=true` |
+| Приход (INCOMING) | 200, `current_stock` увеличивается |
+| Расход (OUTGOING) | 200, `current_stock` уменьшается |
+| Расход > имеющегося запаса | 422 |
+| Любое движение | записывается в `/movements` |
+| Продукт ниже `min_stock_level` | появляется в фильтре `?low_stock_only=true` |
 
-**Покрито:** `tests/features/test_product_crud.py::TestFeatureStockManagement`
+**Покрыто:** `tests/features/test_product_crud.py::TestFeatureStockManagement`
 
 ---
 
-### 3.3 Product Read
-**As** a kitchen worker **I want** to browse products **so that** I can check stock levels.
+### 3.3 Чтение продукта
+**Как** работник кухни **я хочу** просмотреть продукты **чтобы** я мог проверить уровни запаса.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Список усіх | 200, список |
-| Отримати за ID | 200, правильний об'єкт |
-| Неіснуючий ID | 404 |
+| Список всех | 200, список |
+| Получить по ID | 200, правильный объект |
+| Несуществующий ID | 404 |
 
-**Покрито:** `tests/features/test_product_crud.py::TestFeatureProductRead`
+**Покрыто:** `tests/features/test_product_crud.py::TestFeatureProductRead`
 
 ---
 
-### 3.4 Product Delete
-**As** a warehouse manager **I want** to delete products **so that** discontinued ingredients are removed.
+### 3.4 Удаление продукта
+**Как** менеджер склада **я хочу** удалить продукты **чтобы** снятые с производства ингредиенты были убраны.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Видалити існуючий | 204, наступний GET → 404 |
+| Удалить существующий | 204, следующий GET → 404 |
 
-**Покрито:** `tests/features/test_product_crud.py::TestFeatureProductDelete`
+**Покрыто:** `tests/features/test_product_crud.py::TestFeatureProductDelete`
 
 ---
 
 ## 4. order-service
 
-### 4.1 Order Create
-**As** a waiter **I want** to create orders for a table **so that** the kitchen can start preparing.
+### 4.1 Создание заказа
+**Как** официант **я хочу** создать заказы для стола **чтобы** кухня могла начать готовить.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Валідне замовлення | 201, `status: CREATED`, список позицій заповнено |
-| Розрахунок суми | `total_amount` = сума(ціна × кількість) |
-| Порожній список позицій | 422 |
-| Відсутнє поле items | 422 |
-| Знімок ціни | `price_at_order` зберігається з menu-service на момент замовлення |
+| Валидный заказ | 201, `status: CREATED`, список позиций заполнен |
+| Расчёт суммы | `total_amount` = Σ(цена × количество) |
+| Пустой список позиций | 422 |
+| Отсутствует поле items | 422 |
+| Снимок цены | `price_at_order` сохраняется из menu-service на момент заказа |
 
-**Покрито:** `tests/features/test_order_lifecycle.py::TestFeatureCreateOrder`
+**Покрыто:** `tests/features/test_order_lifecycle.py::TestFeatureCreateOrder`
 
 ---
 
-### 4.2 Order Read
-**As** a manager **I want** to query orders **so that** I can track all activity.
+### 4.2 Чтение заказа
+**Как** менеджер **я хочу** запрашивать заказы **чтобы** я мог отслеживать всю активность.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Отримати за ID | 200, правильний об'єкт |
-| Неіснуючий ID | 404 |
-| Список усіх | 200, список |
-| Фільтр за `status` | тільки відповідні замовлення |
+| Получить по ID | 200, правильный объект |
+| Несуществующий ID | 404 |
+| Список всех | 200, список |
+| Фильтр по `status` | только соответствующие заказы |
 
-**Покрито:** `tests/features/test_order_lifecycle.py::TestFeatureOrderRead`
+**Покрыто:** `tests/features/test_order_lifecycle.py::TestFeatureOrderRead`
 
 ---
 
-### 4.3 Order Status Lifecycle
-**As** kitchen staff **I want** to advance order status **so that** the team knows progress.
+### 4.3 Жизненный цикл статуса заказа
+**Как** персонал кухни **я хочу** продвигать статус заказа **чтобы** команда знала прогресс.
 
-Lifecycle: `CREATED → IN_PROGRESS → READY → CLOSED`
-Скасування можливе з: `CREATED`, `IN_PROGRESS`
+Жизненный цикл: `CREATED → IN_PROGRESS → READY → CLOSED`  
+Отмена возможна из: `CREATED`, `IN_PROGRESS`
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Взяти в роботу | 200, `status: IN_PROGRESS`, `taken_at` встановлено |
-| Позначити готовим | 200, `status: READY` |
-| Закрити замовлення | 200, `status: CLOSED`, `closed_at` встановлено |
-| Скасувати зі статусу CREATED | 200, `status: CANCELLED` |
-| Скасувати зі статусу IN_PROGRESS | 200, `status: CANCELLED` |
-| Невалідний перехід (CREATED → CLOSED) | 422 |
-| Скасувати CLOSED замовлення | 422 |
+| Взять в работу | 200, `status: IN_PROGRESS`, `taken_at` установлен |
+| Отметить готовым | 200, `status: READY` |
+| Закрыть заказ | 200, `status: CLOSED`, `closed_at` установлен |
+| Отменить из статуса CREATED | 200, `status: CANCELLED` |
+| Отменить из статуса IN_PROGRESS | 200, `status: CANCELLED` |
+| Невалидный переход (CREATED → CLOSED) | 422 |
+| Отменить CLOSED заказ | 422 |
 
-**Покрито:** `tests/features/test_order_lifecycle.py::TestFeatureOrderStatusLifecycle`
+**Покрыто:** `tests/features/test_order_lifecycle.py::TestFeatureOrderStatusLifecycle`
 
 ---
 
-### 4.4 Order Delete
-**As** a manager **I want** to delete orders **so that** test or erroneous orders can be removed.
+### 4.4 Удаление заказа
+**Как** менеджер **я хочу** удалить заказы **чтобы** тестовые или ошибочные заказы могли быть убраны.
 
-| Сценарій | Очікуваний результат |
+| Сценарий | Ожидаемый результат |
 |---|---|
-| Видалити існуюче | 204 |
-| Наступний GET | 404 |
+| Удалить существующий | 204 |
+| Следующий GET | 404 |
 
-**Покрито:** `tests/features/test_order_lifecycle.py::TestFeatureOrderDelete`
+**Покрыто:** `tests/features/test_order_lifecycle.py::TestFeatureOrderDelete`
 
 ---
 
-## Зведена таблиця покриття
+## Сводная таблица покрытия
 
-| Сервіс | TDD тести | FDD тести | Фіч |
+| Сервис | DDD (tests/domain/) | FDD (tests/features/) | Функций |
 |---|---|---|---|
-| menu-service | 2 файли, 38 тестів | 2 файли, 32 тести | 9 |
-| auth-service | 2 файли, 52 тести | 3 файли, 54 тести | 15 |
-| warehouse-service | 1 файл, 22 тести | 1 файл, 13 тестів | 4 |
-| order-service | 1 файл, 19 тестів | 1 файл, 18 тестів | 4 |
-| **Разом** | **131 тест** | **117 тестів** | **32** |
+| menu-service | 1 файл, ~20 тестов | 2 файла, ~25 тестов | 9 |
+| auth-service | — | 3 файла, ~54 теста | 15 |
+| warehouse-service | 1 файл, ~20 тестов | 1 файл, ~13 тестов | 4 |
+| order-service | 1 файл, ~32 теста | 1 файл, ~18 тестов | 4 |
+| **Итого** | **~72 теста** | **~110 тестов** | **32** |
+
+> Актуальное количество тестов: запустите `make test` для получения точных цифр.
