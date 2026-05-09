@@ -1,23 +1,17 @@
 """
-Feature: Authentication flow
-  As a system user
-  I want to obtain a JWT token by logging in
-  So that I can make authenticated API calls
+Фича: аутентификация через JWT.
 """
 import pytest
 
 
 class TestFeatureLogin:
-    """Feature: Login with email + password."""
+    """Вход по email и паролю."""
 
     async def test_login_valid_credentials_returns_200(self, client) -> None:
-        # Given: valid admin credentials
-        # When: POST /api/v1/auth/login
         resp = await client.post(
             "/api/v1/auth/login",
             json={"email": "admin@example.com", "password": "testpass123"},
         )
-        # Then: 200 + token payload
         assert resp.status_code == 200
         body = resp.json()
         assert "access_token" in body
@@ -54,17 +48,17 @@ class TestFeatureLogin:
         assert resp.status_code == 422
 
     async def test_login_returns_bearer_token(self, client) -> None:
-        """Token must be a non-trivial string (three JWT segments)."""
+        """Токен должен быть трёхсегментным JWT."""
         resp = await client.post(
             "/api/v1/auth/login",
             json={"email": "admin@example.com", "password": "testpass123"},
         )
         token = resp.json()["access_token"]
-        assert token.count(".") == 2, "JWT must have three segments"
+        assert token.count(".") == 2, "ожидается три сегмента (header.payload.sig)"
 
 
 class TestFeatureMe:
-    """Feature: GET /me — current user info from token."""
+    """GET /me — данные текущего пользователя."""
 
     async def test_me_with_valid_token_returns_200(self, admin_client) -> None:
         resp = await admin_client.get("/api/v1/auth/me")
@@ -86,8 +80,8 @@ class TestFeatureMe:
         assert resp.status_code == 401
 
     async def test_me_contains_permissions(self, admin_client) -> None:
-        """Admin token must carry a non-empty permissions list."""
-        # Login fresh to inspect token payload
+        """Токен admin должен содержать непустой список прав."""
+        # логинимся заново, чтобы проверить payload
         login_resp = await admin_client.post(
             "/api/v1/auth/login",
             json={"email": "admin@example.com", "password": "testpass123"},
@@ -104,7 +98,7 @@ class TestFeatureMe:
 
 
 class TestFeatureHealth:
-    """Feature: Health check endpoint."""
+    """Проверка работоспособности сервиса."""
 
     async def test_health_returns_ok(self, client) -> None:
         resp = await client.get("/health")

@@ -8,7 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.repositories.category import CategoryRepository
 from app.repositories.dish import DishRepository
-from app.schemas.dish import DishCreate, DishResponse, DishUpdate, PriceHistoryResponse, PriceUpdate
+from app.schemas.dish import (
+    DishCreate, DishIngredientCreate, DishIngredientResponse,
+    DishResponse, DishUpdate, PriceHistoryResponse, PriceUpdate,
+)
 from app.services.dish import DishService
 
 router = APIRouter(prefix="/dishes", tags=["dishes"])
@@ -81,3 +84,31 @@ async def delete_dish(
     service: Annotated[DishService, Depends(get_dish_service)],
 ) -> None:
     await service.delete_dish(dish_id)
+
+
+@router.get("/{dish_id}/ingredients", response_model=list[DishIngredientResponse])
+async def get_ingredients(
+    dish_id: uuid.UUID,
+    service: Annotated[DishService, Depends(get_dish_service)],
+) -> list[DishIngredientResponse]:
+    ingredients = await service.get_ingredients(dish_id)
+    return [DishIngredientResponse.model_validate(i) for i in ingredients]
+
+
+@router.post("/{dish_id}/ingredients", response_model=DishIngredientResponse, status_code=HTTPStatus.CREATED)
+async def add_ingredient(
+    dish_id: uuid.UUID,
+    data: DishIngredientCreate,
+    service: Annotated[DishService, Depends(get_dish_service)],
+) -> DishIngredientResponse:
+    ingredient = await service.add_ingredient(dish_id, data)
+    return DishIngredientResponse.model_validate(ingredient)
+
+
+@router.delete("/{dish_id}/ingredients/{ingredient_id}", status_code=HTTPStatus.NO_CONTENT)
+async def delete_ingredient(
+    dish_id: uuid.UUID,
+    ingredient_id: uuid.UUID,
+    service: Annotated[DishService, Depends(get_dish_service)],
+) -> None:
+    await service.delete_ingredient(dish_id, ingredient_id)

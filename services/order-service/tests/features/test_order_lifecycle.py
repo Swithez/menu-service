@@ -1,15 +1,13 @@
 """
-Feature: Order lifecycle management
-  As a restaurant operator
-  I want to create, track, and close customer orders
-  So that the kitchen and waitstaff can coordinate efficiently
+Фича: жизненный цикл заказа.
 
-Lifecycle:
-  CREATED -> IN_PROGRESS -> READY -> CLOSED
-                         \-> CANCELLED (any non-terminal state)
+CREATED -> IN_PROGRESS -> READY -> CLOSED
+                       \\-> CANCELLED (из любого нетерминального состояния)
 """
-import json
 import uuid
+from unittest.mock import MagicMock, patch
+
+import pytest
 
 
 def make_order_payload(mock_dish_id: str, table: int = 1, qty: int = 2) -> dict:
@@ -27,7 +25,7 @@ class TestFeatureCreateOrder:
         resp = client.post("/api/v1/orders/", json=payload)
         assert resp.status_code == 201
         body = resp.get_json()
-        assert body["status"] == "CREATED"
+        assert body["status"] == "FALL"
         assert body["table_number"] == 1
         assert len(body["items"]) == 1
         assert body["items"][0]["dish_name"] == dish["name"]
@@ -39,7 +37,7 @@ class TestFeatureCreateOrder:
             json=make_order_payload(dish["id"], qty=2),
         )
         body = resp.get_json()
-        # 150.00 * 2 = 300.00
+        # 150.00 × 2 = 300.00
         assert float(body["total_amount"]) == 300.0
 
     def test_create_order_empty_items_returns_422(self, client) -> None:
@@ -86,7 +84,7 @@ class TestFeatureOrderRead:
 
 
 class TestFeatureOrderStatusLifecycle:
-    """Feature: Full lifecycle CREATED -> IN_PROGRESS -> READY -> CLOSED."""
+    """Полный жизненный цикл: CREATED -> IN_PROGRESS -> READY -> CLOSED."""
 
     def _create(self, client, mock_menu_service) -> str:
         _, dish = mock_menu_service
@@ -131,7 +129,7 @@ class TestFeatureOrderStatusLifecycle:
         assert resp.get_json()["status"] == "CANCELLED"
 
     def test_invalid_transition_returns_422(self, client, mock_menu_service) -> None:
-        # Cannot go directly from CREATED to CLOSED
+        # нельзя перейти напрямую из CREATED в CLOSED
         order_id = self._create(client, mock_menu_service)
         resp = client.patch(
             f"/api/v1/orders/{order_id}/status", json={"status": "CLOSED"}
@@ -161,3 +159,115 @@ class TestFeatureOrderDelete:
         order_id = create_resp.get_json()["id"]
         client.delete(f"/api/v1/orders/{order_id}")
         assert client.get(f"/api/v1/orders/{order_id}").status_code == 404
+
+
+# ── Фикстуры: интеграция со складом ──────────────────────────────────────────
+
+_PRODUCT_ID = str(uuid.uuid4())
+_DISH_WITH_INGREDIENTS_ID = str(uuid.uuid4())
+
+_DISH_WITH_INGREDIENTS = {
+    "id": _DISH_WITH_INGREDIENTS_ID,
+    "name": "Chicken Curry",
+    "price": "250.00",
+    "is_available": True,
+}
+_INGREDIENTS = [
+    {
+        "product_id": _PRODUCT_ID,
+        "product_name": "Chicken",
+        "quantity": "0.300",
+        "unit": "kg",
+    }
+]
+
+
+def _make_stock_side_effect(stock: str):
+    def _side_effect(url: str, **kwargs):
+        resp = MagicMock()
+        resp.raise_for_status = MagicMock()
+        resp.status_code = 200
+        if "/ingredients" in url:
+            resp.json.return_value = _INGREDIENTS
+        elif "/products/" in url:
+            resp.json.return_value = {"id": _PRODUCT_ID, "current_stock": stock}
+        else:
+            resp.json.return_value = _DISH_WITH_INGREDIENTS
+        return resp
+    return _side_effect
+
+
+@pytest.fixture()
+def mock_sufficient_stock():
+    with patch("httpx.get", side_effect=_make_stock_side_effect("10.000")):
+        with patch("httpx.post", return_value=MagicMock(status_code=200)):
+            yield _DISH_WITH_INGREDIENTS_ID
+
+
+@pytest.fixture()
+def mock_insufficient_stock():
+    with patch("httpx.get", side_effect=_make_stock_side_effect("0.100")):
+        with patch("httpx.post", return_value=MagicMock(status_code=200)):
+            yield _DISH_WITH_INGREDIENTS_ID
+
+
+# ── Проверка наличия остатков ─────────────────────────────────────────────────
+
+class TestFeatureStockFeasibility:
+    """Нельзя создать заказ, если ингредиентов не хватает."""
+
+    def test_order_with_sufficient_stock_succeeds(self, client, mock_sufficient_stock) -> None:
+        resp = client.post("/api/v1/orders/", json=make_order_payload(mock_sufficient_stock))
+        assert resp.status_code == 201
+
+    def test_order_with_insufficient_stock_returns_422(self, client, mock_insufficient_stock) -> None:
+        # 100 порций × 0.3 кг = 30 кг нужно, на складе только 0.1 кг
+        payload = make_order_payload(mock_insufficient_stock, qty=100)
+        resp = client.post("/api/v1/orders/", json=payload)
+        assert resp.status_code == 422
+        assert "Недостаточно продуктов на складе" in resp.get_json()["detail"]
+
+    def test_insufficient_stock_error_names_the_product(self, client, mock_insufficient_stock) -> None:
+        payload = make_order_payload(mock_insufficient_stock, qty=100)
+        resp = client.post("/api/v1/orders/", json=payload)
+        assert "Chicken" in resp.get_json()["detail"]
+
+    def test_order_without_ingredients_always_succeeds(self, client, mock_menu_service) -> None:
+        _, dish = mock_menu_service
+        resp = client.post("/api/v1/orders/", json=make_order_payload(dish["id"]))
+        assert resp.status_code == 201
+
+
+class TestFeatureIngredientSnapshot:
+    """Ингредиенты снимаются со склада при переходе в READY."""
+
+    def test_ready_transition_calls_warehouse_deduction(self, client, mock_sufficient_stock) -> None:
+        dish_id = mock_sufficient_stock
+        create_resp = client.post("/api/v1/orders/", json=make_order_payload(dish_id))
+        assert create_resp.status_code == 201
+        order_id = create_resp.get_json()["id"]
+        client.post(f"/api/v1/orders/{order_id}/take")
+
+        with patch("httpx.post") as deduct_mock:
+            deduct_mock.return_value = MagicMock(status_code=200)
+            resp = client.post(f"/api/v1/orders/{order_id}/ready")
+
+        assert resp.status_code == 200
+        assert resp.get_json()["status"] == "READY"
+        deduct_mock.assert_called_once()
+        call_json = deduct_mock.call_args.kwargs["json"]
+        assert call_json["movement_type"] == "OUTGOING"
+
+    def test_close_does_not_call_warehouse_again(self, client, mock_sufficient_stock) -> None:
+        dish_id = mock_sufficient_stock
+        create_resp = client.post("/api/v1/orders/", json=make_order_payload(dish_id))
+        order_id = create_resp.get_json()["id"]
+        client.post(f"/api/v1/orders/{order_id}/take")
+        client.post(f"/api/v1/orders/{order_id}/ready")
+
+        with patch("httpx.post") as close_mock:
+            close_mock.return_value = MagicMock(status_code=200)
+            resp = client.post(f"/api/v1/orders/{order_id}/close")
+
+        assert resp.status_code == 200
+        close_mock.assert_not_called()

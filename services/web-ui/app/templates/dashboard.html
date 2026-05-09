@@ -12,7 +12,7 @@
 
 <!-- KPI cards -->
 <div class="row g-3 mt-1">
-  <div class="col-6 col-xl-3">
+  <div class="col-6 col-xl">
     <div class="kpi-card">
       <div class="kpi-icon bg-primary-subtle text-primary"><i class="bi bi-egg-fried"></i></div>
       <div>
@@ -22,7 +22,19 @@
       </div>
     </div>
   </div>
-  <div class="col-6 col-xl-3">
+  <div class="col-6 col-xl">
+    <div class="kpi-card">
+      <div class="kpi-icon {% if stats.dishes_cookable == stats.dishes_available %}bg-success-subtle text-success{% elif stats.dishes_cookable == 0 %}bg-danger-subtle text-danger{% else %}bg-warning-subtle text-warning{% endif %}">
+        <i class="bi bi-fire"></i>
+      </div>
+      <div>
+        <div class="kpi-value">{{ stats.dishes_cookable }}</div>
+        <div class="kpi-label">Можно приготовить</div>
+        <small class="text-muted">из {{ stats.dishes_available }} доступных</small>
+      </div>
+    </div>
+  </div>
+  <div class="col-6 col-xl">
     <div class="kpi-card">
       <div class="kpi-icon bg-warning-subtle text-warning"><i class="bi bi-fire"></i></div>
       <div>
@@ -32,7 +44,7 @@
       </div>
     </div>
   </div>
-  <div class="col-6 col-xl-3">
+  <div class="col-6 col-xl">
     <div class="kpi-card">
       <div class="kpi-icon {% if stats.products_low_stock > 0 %}bg-danger-subtle text-danger{% else %}bg-success-subtle text-success{% endif %}">
         <i class="bi bi-box-seam"></i>
@@ -44,7 +56,7 @@
       </div>
     </div>
   </div>
-  <div class="col-6 col-xl-3">
+  <div class="col-6 col-xl">
     <div class="kpi-card">
       <div class="kpi-icon bg-success-subtle text-success"><i class="bi bi-bag-check"></i></div>
       <div>
@@ -78,7 +90,7 @@
             <tr>
               <td class="text-muted font-monospace" style="font-size:.75rem">{{ o.id[:8] }}…</td>
               <td>{% if o.table_number %}<span class="badge bg-secondary">Стол {{ o.table_number }}</span>{% else %}—{% endif %}</td>
-              <td>{{ o.items|length }}</td>
+              <td>{{ o['items']|length }}</td>
               <td class="fw-semibold">{{ o.total_amount|fmt_price }}</td>
               <td>
                 {% set color, icon = {'CREATED':('primary','bi-clock'),'IN_PROGRESS':('warning','bi-fire'),'READY':('info','bi-check-circle')}.get(o.status, ('secondary','bi-dash')) %}

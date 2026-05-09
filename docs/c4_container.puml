@@ -10,6 +10,7 @@ title C4 Модель — Уровень 2: Диаграмма контейне�
 AddElementTag("fastapi", $bgColor="#2980B9", $fontColor="white",  $borderColor="#1A5276", $sprite="python")
 AddElementTag("flask",   $bgColor="#F39C12", $fontColor="white",  $borderColor="#B7770D", $sprite="python")
 AddElementTag("pg",      $bgColor="#336791", $fontColor="white",  $borderColor="#1A3A54")
+AddElementTag("auth",    $bgColor="#8E44AD", $fontColor="white",  $borderColor="#6C3483", $sprite="python")
 
 ' ──────────────────────────────────────────────
 '  Актеры
@@ -22,15 +23,33 @@ Person(staff,   "Официант / Повар",      "Создает и обр�
 ' ──────────────────────────────────────────────
 System_Boundary(rms, "Система управления меню ресторана  —  docker compose") {
 
+    ' ── web-ui ────────────────────────────────
+    Container_Boundary(ui_bound, "web-ui  :8888") {
+        Container(web_ui, "Web UI",
+            "Python 3.12 / Flask 3.0\nJinja2 / Bootstrap",
+            "Браузерный интерфейс:\nдашборд, меню, склад, заказы,\nадминистрирование пользователей/ролей", $tags="flask")
+    }
+
+    ' ── auth-service ──────────────────────────
+    Container_Boundary(as_bound, "auth-service  :8004") {
+        Container(auth_api, "Auth API",
+            "Python 3.12 / FastAPI\nasync SQLAlchemy 2.0 / Pydantic v2",
+            "JWT-аутентификация;\nCRUD пользователей, ролей, разрешений;\nstart-up seed: admin-роль и разрешения", $tags="auth")
+
+        ContainerDb(auth_db, "auth_db",
+            "PostgreSQL 16",
+            "таблицы: users, roles,\npermissions, role_permissions", $tags="pg")
+    }
+
     ' ── menu-service ──────────────────────────
     Container_Boundary(ms_bound, "menu-service  :8001") {
         Container(menu_api, "Menu API",
             "Python 3.12 / FastAPI\nasync SQLAlchemy 2.0 / Pydantic v2",
-            "Выдает REST API для категорий,\nблюд, цен, информации о питательности", $tags="fastapi")
+            "REST API для категорий, блюд,\nцен и состава блюд (рецептов)", $tags="fastapi")
 
         ContainerDb(menu_db, "menu_db",
             "PostgreSQL 16",
-            "таблицы: categories, dishes,\nprice_history", $tags="pg")
+            "таблицы: categories, dishes,\nprice_history, dish_ingredients", $tags="pg")
     }
 
     ' ── warehouse-service ─────────────────────
@@ -52,20 +71,20 @@ System_Boundary(rms, "Система управления меню рестор�
 
         ContainerDb(order_db, "order_db",
             "PostgreSQL 16",
-            "таблицы: orders,\norder_items", $tags="pg")
+            "таблицы: orders, order_items,\norder_ingredients", $tags="pg")
     }
 }
 
 ' ──────────────────────────────────────────────
 '  Отношения — актеры → контейнеры
 ' ──────────────────────────────────────────────
-Rel(manager, menu_api,      "CRUD категорий, блюд,\nцен, питательности",  "HTTPS / JSON")
-Rel(manager, warehouse_api, "CRUD продуктов,\nрегулирование запаса",                 "HTTPS / JSON")
-Rel(staff,   order_api,     "Создание / взяток / закрытие\nзаказов",                "HTTPS / JSON")
+Rel(manager, web_ui, "Управляет меню, складом,\nпользователями и ролями", "HTTPS / браузер")
+Rel(staff,   web_ui, "Создаёт заказы,\nуправляет жизненным циклом",  "HTTPS / браузер")
 
 ' ──────────────────────────────────────────────
 '  Отношения — APIs → БД
 ' ──────────────────────────────────────────────
+Rel(auth_api,      auth_db,      "чтение / запись", "asyncpg\nSQLAlchemy async")
 Rel(menu_api,      menu_db,      "чтение / запись", "asyncpg\nSQLAlchemy async")
 Rel(warehouse_api, warehouse_db, "чтение / запись", "asyncpg\nSQLAlchemy async")
 Rel(order_api,     order_db,     "чтение / запись", "psycopg2\nSQLAlchemy sync")
@@ -73,17 +92,20 @@ Rel(order_api,     order_db,     "чтение / запись", "psycopg2\nSQLAl
 ' ──────────────────────────────────────────────
 '  Отношения — HTTP между сервисами
 ' ──────────────────────────────────────────────
-Rel(order_api, menu_api,      "GET /api/v1/dishes/{id}\nПроверить блюдо и получить цену",   "HTTP / JSON\nhttpx sync")
-Rel(order_api, warehouse_api, "POST /api/v1/products/consume\nСписать запас при закрытии",  "HTTP / JSON\nhttpx sync")
+Rel(web_ui,    auth_api,      "POST /login, GET /me,\nCRUD пользователей и ролей",                    "HTTP / JSON\nrequests sync")
+Rel(web_ui,    menu_api,      "CRUD категорий, блюд,\nцен, состава блюд",                             "HTTP / JSON\nrequests sync")
+Rel(web_ui,    warehouse_api, "CRUD продуктов,\nдвижения запаса",                                    "HTTP / JSON\nrequests sync")
+Rel(web_ui,    order_api,     "CRUD заказов,\nпереходы статусов",                                    "HTTP / JSON\nrequests sync")
+Rel(order_api, menu_api,      "GET /dishes/{id} — цена блюда\nGET /dishes/{id}/ingredients — рецепт", "HTTP / JSON\nhttpx sync")
+Rel(order_api, warehouse_api, "GET /products/{id} — проверка запаса\nPOST /products/{id}/stock — списание OUTGOING", "HTTP / JSON\nhttpx sync")
 
 ' ──────────────────────────────────────────────
 '  Заметки
 ' ──────────────────────────────────────────────
 note right of order_api
-  Уведомление склада
-  **fire-and-forget** (по возможности).
-  Ошибки логируются; запас
-  сверяется асинхронно.
+  Проверка запаса при создании заказа.
+  Списание — **fire-and-forget** при READY.
+  Ошибки склада не блокируют переход.
 end note
 
 note right of menu_api

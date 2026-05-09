@@ -50,3 +50,13 @@ class MenuClient(BaseClient):
 
     def delete_dish(self, dish_id: str) -> None:
         self.delete(f"/api/v1/dishes/{dish_id}")
+
+    # ── Ingredients ───────────────────────────────────────────────────
+    def get_ingredients(self, dish_id: str) -> list[dict]:
+        return self.get(f"/api/v1/dishes/{dish_id}/ingredients") or []
+
+    def add_ingredient(self, dish_id: str, data: dict) -> dict:
+        return self.post(f"/api/v1/dishes/{dish_id}/ingredients", json=data)
+
+    def delete_ingredient(self, dish_id: str, ingredient_id: str) -> None:
+        self.delete(f"/api/v1/dishes/{dish_id}/ingredients/{ingredient_id}")

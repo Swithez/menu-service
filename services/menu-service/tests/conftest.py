@@ -1,8 +1,8 @@
 """
-Shared test fixtures for menu-service.
+Фикстуры menu-service.
 
-Uses an in-memory SQLite database for isolation (no real Postgres needed).
-Each test gets a fresh session via function-scoped fixtures.
+SQLite в памяти — Postgres не нужен.
+Каждый тест получает свою сессию, которая откатывается после выполнения.
 """
 import pytest
 import pytest_asyncio

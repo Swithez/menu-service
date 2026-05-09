@@ -1,8 +1,5 @@
 """
-Feature: Product (inventory) management
-  As a warehouse manager
-  I want to manage product stock
-  So that the kitchen has accurate ingredient information
+Фича: управление продуктами на складе.
 """
 import pytest
 
@@ -35,13 +32,13 @@ class TestFeatureProductCreate:
 
 
 class TestFeatureStockManagement:
-    """Feature: Stock adjustment with movements tracking."""
+    """Корректировка остатков с историей движений."""
 
     async def test_incoming_stock_increases_level(self, client) -> None:
-        # Given: a product with 0 stock
+        # продукт с нулевым остатком
         create_resp = await client.post("/api/v1/products/", json={"name": "Tomato", "unit": "kg"})
         pid = create_resp.json()["id"]
-        # When: incoming delivery
+        # приёмка
         resp = await client.post(
             f"/api/v1/products/{pid}/stock",
             json={"quantity": "15.500", "movement_type": "INCOMING"},
@@ -83,11 +80,11 @@ class TestFeatureStockManagement:
         )
         movements_resp = await client.get(f"/api/v1/products/{pid}/movements")
         assert movements_resp.status_code == 200
-        # initial stock (INCOMING) + second INCOMING
+        # начальный остаток + вторая приёмка
         assert len(movements_resp.json()) >= 2
 
     async def test_low_stock_filter(self, client) -> None:
-        # Product with 0 stock and min_stock_level 5 => low stock
+        # 0 остатка при минимуме 5 — должен попасть в фильтр
         await client.post(
             "/api/v1/products/",
             json={"name": "RareSauce", "unit": "ml", "min_stock_level": "5.000"},
@@ -121,5 +118,5 @@ class TestFeatureProductDelete:
         pid = create_resp.json()["id"]
         resp = await client.delete(f"/api/v1/products/{pid}")
         assert resp.status_code == 204
-        # Confirm it's gone
+        # проверяем, что удалился
         assert (await client.get(f"/api/v1/products/{pid}")).status_code == 404

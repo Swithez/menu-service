@@ -1,8 +1,7 @@
 """
-DDD: Domain tests for menu-service.
+Доменные тесты menu-service.
 
-Tests dish and category schema rules in complete isolation —
-no HTTP layer, no database.
+Схемы блюд и категорий — без HTTP и базы данных.
 """
 import uuid
 from decimal import Decimal
@@ -10,15 +9,14 @@ from decimal import Decimal
 import pytest
 from pydantic import ValidationError
 
-from app.schemas.dish import DishCreate, DishUpdate, PriceUpdate
-from app.schemas.category import CategoryCreate, CategoryUpdate
+from app.schemas.dish import DishCreate, DishIngredientCreate, DishUpdate, PriceUpdate
 from app.schemas.category import CategoryCreate, CategoryUpdate
 
 
-# ── Dish schema ───────────────────────────────────────────────────────────────
+# ── Схема блюда ──────────────────────────────────────────────────────────────
 
 class TestDishCreateDomain:
-    """Domain rules: what makes a valid dish."""
+    """Правила создания блюда."""
 
     def test_minimal_valid_dish(self) -> None:
         dish = DishCreate(name="Borscht", price=Decimal("120.00"))
@@ -62,7 +60,7 @@ class TestDishCreateDomain:
 
 
 class TestDishUpdateDomain:
-    """Domain rules: what makes a valid dish update."""
+    """Правила обновления блюда."""
 
     def test_update_availability(self) -> None:
         update = DishUpdate(is_available=False)
@@ -82,7 +80,7 @@ class TestDishUpdateDomain:
 
 
 class TestPriceUpdateDomain:
-    """Domain rules for standalone price updates."""
+    """Правила обновления цены."""
 
     def test_valid_price(self) -> None:
         pu = PriceUpdate(price=Decimal("199.99"))
@@ -97,10 +95,10 @@ class TestPriceUpdateDomain:
             PriceUpdate(price=Decimal("-1"))
 
 
-# ── Category schema ───────────────────────────────────────────────────────────
+# ── Схема категории ──────────────────────────────────────────────────────────
 
 class TestCategoryDomain:
-    """Domain rules for categories."""
+    """Правила создания и обновления категории."""
 
     def test_valid_category(self) -> None:
         cat = CategoryCreate(name="Soups")
@@ -126,3 +124,57 @@ class TestCategoryDomain:
     def test_update_blank_name_rejected(self) -> None:
         with pytest.raises(ValidationError):
             CategoryUpdate(name="   ")
+
+
+# ── Схема ингредиента ────────────────────────────────────────────────────────
+
+class TestDishIngredientDomain:
+    """Правила схемы ингредиента блюда."""
+
+    def test_valid_ingredient(self) -> None:
+        ing = DishIngredientCreate(
+            product_id=uuid.uuid4(),
+            product_name="Chicken",
+            quantity=Decimal("0.300"),
+            unit="kg",
+        )
+        assert ing.product_name == "Chicken"
+        assert ing.quantity == Decimal("0.300")
+        assert ing.unit == "kg"
+
+    def test_zero_quantity_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            DishIngredientCreate(
+                product_id=uuid.uuid4(), product_name="X", quantity=Decimal("0"), unit="kg"
+            )
+
+    def test_negative_quantity_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            DishIngredientCreate(
+                product_id=uuid.uuid4(), product_name="X", quantity=Decimal("-1"), unit="kg"
+            )
+
+    def test_empty_product_name_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            DishIngredientCreate(
+                product_id=uuid.uuid4(), product_name="", quantity=Decimal("1"), unit="kg"
+            )
+
+    def test_empty_unit_rejected(self) -> None:
+        with pytest.raises(ValidationError):
+            DishIngredientCreate(
+                product_id=uuid.uuid4(), product_name="Chicken", quantity=Decimal("1"), unit=""
+            )
+
+    def test_product_name_max_length_enforced(self) -> None:
+        with pytest.raises(ValidationError):
+            DishIngredientCreate(
+                product_id=uuid.uuid4(), product_name="x" * 256, quantity=Decimal("1"), unit="kg"
+            )
+
+    def test_unit_max_length_enforced(self) -> None:
+        with pytest.raises(ValidationError):
+            DishIngredientCreate(
+                product_id=uuid.uuid4(), product_name="Salt", quantity=Decimal("1"),
+                unit="x" * 51,
+            )

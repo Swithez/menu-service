@@ -19,7 +19,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
 app = FastAPI(
     title=settings.app_name,
-    description="Restaurant menu management: categories, dishes, prices, nutrition info",
+    description="Restaurant menu management: categories, dishes, prices and dish ingredients",
     version="1.0.0",
     lifespan=lifespan,
 )

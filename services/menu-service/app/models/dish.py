@@ -2,8 +2,7 @@ import uuid
 from datetime import datetime, timezone
 from decimal import Decimal
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Boolean, DateTime, ForeignKey, Numeric, String, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -13,10 +12,10 @@ class Dish(Base):
     __tablename__ = "dishes"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        Uuid(), primary_key=True, default=uuid.uuid4
     )
     category_id: Mapped[uuid.UUID | None] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("categories.id", ondelete="SET NULL"), nullable=True
+        Uuid(), ForeignKey("categories.id", ondelete="SET NULL"), nullable=True
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     description: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -36,6 +35,9 @@ class Dish(Base):
     price_history: Mapped[list["PriceHistory"]] = relationship(
         "PriceHistory", back_populates="dish", cascade="all, delete-orphan"
     )
+    ingredients: Mapped[list["DishIngredient"]] = relationship(
+        "DishIngredient", back_populates="dish", cascade="all, delete-orphan"
+    )
 
     def __repr__(self) -> str:
         return f"<Dish id={self.id} name={self.name!r} price={self.price}>"
@@ -45,10 +47,10 @@ class PriceHistory(Base):
     __tablename__ = "price_history"
 
     id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+        Uuid(), primary_key=True, default=uuid.uuid4
     )
     dish_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("dishes.id", ondelete="CASCADE"), nullable=False
+        Uuid(), ForeignKey("dishes.id", ondelete="CASCADE"), nullable=False
     )
     old_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     new_price: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
@@ -62,3 +64,23 @@ class PriceHistory(Base):
 
     def __repr__(self) -> str:
         return f"<PriceHistory dish_id={self.dish_id} {self.old_price} -> {self.new_price}>"
+
+
+class DishIngredient(Base):
+    __tablename__ = "dish_ingredients"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(), primary_key=True, default=uuid.uuid4
+    )
+    dish_id: Mapped[uuid.UUID] = mapped_column(
+        Uuid(), ForeignKey("dishes.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    product_id: Mapped[uuid.UUID] = mapped_column(Uuid(), nullable=False)
+    product_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    quantity: Mapped[Decimal] = mapped_column(Numeric(10, 3), nullable=False)
+    unit: Mapped[str] = mapped_column(String(50), nullable=False)
+
+    dish: Mapped["Dish"] = relationship("Dish", back_populates="ingredients")
+
+    def __repr__(self) -> str:
+        return f"<DishIngredient dish_id={self.dish_id} product={self.product_name!r} qty={self.quantity}>"

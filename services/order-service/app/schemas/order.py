@@ -51,14 +51,32 @@ class OrderStatusTransitionSchema(BaseModel):
         OrderStatus.CANCELLED: set(),
     }
 
+    _STATUS_RU: ClassVar[dict[str, str]] = {
+        "CREATED": "Создан",
+        "IN_PROGRESS": "В работе",
+        "READY": "Готово к выдаче",
+        "CLOSED": "Закрыт",
+        "CANCELLED": "Отменён",
+    }
+
     @classmethod
     def validate_transition(cls, current: OrderStatus, next_status: OrderStatus) -> None:
         allowed = cls.ALLOWED_TRANSITIONS.get(current, set())
         if next_status not in allowed:
-            raise ValueError(
-                f"Cannot transition from {current} to {next_status}. "
-                f"Allowed: {allowed or 'none (terminal state)'}"
-            )
+            cur_ru = cls._STATUS_RU.get(current.value, current.value)
+            nxt_ru = cls._STATUS_RU.get(next_status.value, next_status.value)
+            if allowed:
+                allowed_ru = ", ".join(
+                    cls._STATUS_RU.get(s.value, s.value) for s in allowed
+                )
+                raise ValueError(
+                    f"Нельзя перевести заказ из «{cur_ru}» в «{nxt_ru}». "
+                    f"Доступные переходы: {allowed_ru}"
+                )
+            else:
+                raise ValueError(
+                    f"Заказ в статусе «{cur_ru}» — финальное состояние, изменение невозможно"
+                )
 
 
 class OrderItemSchema(BaseModel):

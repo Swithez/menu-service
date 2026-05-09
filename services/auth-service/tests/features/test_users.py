@@ -1,8 +1,5 @@
 """
-Feature: User management
-  As an administrator
-  I want to create and manage user accounts
-  So that staff can access the system with appropriate roles
+Фича: управление пользователями.
 """
 import pytest
 
@@ -11,7 +8,7 @@ FAKE_ID = "00000000-0000-0000-0000-000000000099"
 
 
 class TestFeatureUserList:
-    """Feature: List users."""
+    """Список пользователей."""
 
     async def test_list_users_returns_200(self, admin_client) -> None:
         resp = await admin_client.get("/api/v1/users")
@@ -29,7 +26,7 @@ class TestFeatureUserList:
 
 
 class TestFeatureUserCreate:
-    """Feature: Create a new user."""
+    """Создание пользователя."""
 
     async def test_create_user_minimal_returns_201(self, admin_client) -> None:
         resp = await admin_client.post(
@@ -49,12 +46,12 @@ class TestFeatureUserCreate:
         assert "id" in body
 
     async def test_create_user_with_role(self, admin_client) -> None:
-        # Given: a non-system role exists
+        # несистемная роль
         role_resp = await admin_client.post(
             "/api/v1/roles", json={"name": "cashier-role"}
         )
         role_id = role_resp.json()["id"]
-        # When: create user with that role
+        # создаём пользователя с этой ролью
         resp = await admin_client.post(
             "/api/v1/users",
             json={
@@ -106,7 +103,7 @@ class TestFeatureUserCreate:
 
 
 class TestFeatureUserRead:
-    """Feature: Read a single user."""
+    """Чтение пользователя."""
 
     async def test_get_user_by_id(self, admin_client) -> None:
         create_resp = await admin_client.post(
@@ -124,7 +121,7 @@ class TestFeatureUserRead:
 
 
 class TestFeatureUserUpdate:
-    """Feature: Update user details."""
+    """Обновление пользователя."""
 
     async def test_update_full_name(self, admin_client) -> None:
         create_resp = await admin_client.post(
@@ -192,7 +189,7 @@ class TestFeatureUserUpdate:
 
 
 class TestFeatureUserDelete:
-    """Feature: Delete a user."""
+    """Удаление пользователя."""
 
     async def test_delete_user_returns_204(self, admin_client) -> None:
         create_resp = await admin_client.post(
@@ -219,10 +216,10 @@ class TestFeatureUserDelete:
 
 
 class TestFeatureInactiveUserLogin:
-    """Feature: Inactive users cannot log in."""
+    """Заблокированный пользователь не может войти."""
 
     async def test_inactive_user_login_returns_403(self, admin_client, client) -> None:
-        # Create then deactivate a user
+        # создаём неактивного пользователя
         create_resp = await admin_client.post(
             "/api/v1/users",
             json={
@@ -232,7 +229,7 @@ class TestFeatureInactiveUserLogin:
                 "is_active": False,
             },
         )
-        # Attempt login
+        # пробуем войти
         resp = await client.post(
             "/api/v1/auth/login",
             json={"email": "blocked@restaurant.com", "password": "blockpass1"},

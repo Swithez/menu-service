@@ -468,6 +468,61 @@ UUID используют стандартный формат `xxxxxxxx-xxxx-xxx
 
 ---
 
+### Состав блюд (ингредиенты)
+
+#### `GET /dishes/{id}/ingredients`
+Получить список ингредиентов (рецепт) блюда.
+
+**Ответы:** `200` массив `DishIngredientResponse` · `404` Блюдо не найдено
+
+> Те же данные включаются в поле `ingredients` при `GET /dishes/{id}`.
+
+---
+
+#### `POST /dishes/{id}/ingredients`
+Добавить ингредиент в состав блюда.
+
+```json
+{
+  "product_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "product_name": "Куриное филе",
+  "quantity": "0.300",
+  "unit": "kg"
+}
+```
+
+| Поле | Тип | Обязательное | Ограничения |
+|-------|------|----------|-------------|
+| `product_id` | UUID | да | ID продукта из warehouse-service |
+| `product_name` | string | да | 1–255 символов (снимок имени) |
+| `quantity` | decimal | да | > 0 |
+| `unit` | string | да | 1–50 символов |
+
+**Ответы:** `201` DishIngredientResponse · `404` Блюдо не найдено · `422` Ошибка валидации
+
+---
+
+#### `DELETE /dishes/{id}/ingredients/{ingredient_id}`
+Удалить ингредиент из состава блюда.
+
+**Ответы:** `204` Без содержимого · `404` Не найдено
+
+---
+
+**Схема `DishIngredientResponse`**
+```json
+{
+  "id": "...",
+  "dish_id": "...",
+  "product_id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "product_name": "Куриное филе",
+  "quantity": "0.300",
+  "unit": "kg"
+}
+```
+
+---
+
 **Схема `DishResponse`**
 ```json
 {
@@ -479,7 +534,17 @@ UUID используют стандартный формат `xxxxxxxx-xxxx-xxx
   "is_available": true,
   "image_url": null,
   "created_at": "2026-04-13T10:00:00Z",
-  "updated_at": "2026-04-13T10:00:00Z"
+  "updated_at": "2026-04-13T10:00:00Z",
+  "ingredients": [
+    {
+      "id": "...",
+      "dish_id": "...",
+      "product_id": "...",
+      "product_name": "Свёкла",
+      "quantity": "0.200",
+      "unit": "kg"
+    }
+  ]
 }
 ```
 
@@ -643,7 +708,18 @@ UUID используют стандартный формат `xxxxxxxx-xxxx-xxx
 **Цена и имя блюда снимаются как снимок** из `menu-service` во время создания заказа.  
 `total_amount` = Σ(`price_at_order × quantity`).
 
-**Ответы:** `201` OrderResponse · `404` Блюдо не найдено · `422` Блюдо недоступно / ошибка валидации · `503` menu-service недоступен
+Если у блюда задан состав (ингредиенты), сервис проверяет наличие продуктов на складе с учётом
+**уже существующих активных заказов** (`CREATED`, `IN_PROGRESS`). При нехватке возвращается `422`
+с перечислением дефицитных позиций.
+
+**Ответы:**
+
+| Код | Описание |
+|-----|----------|
+| 201 | Заказ создан |
+| 404 | Блюдо не найдено в menu-service |
+| 422 | Блюдо недоступно / пустой список / недостаточно продуктов на складе |
+| 503 | menu-service недоступен |
 
 ---
 
@@ -677,13 +753,15 @@ UUID используют стандартный формат `xxxxxxxx-xxxx-xxx
 Сокращение: `CREATED → IN_PROGRESS`. Устанавливает `taken_at`.
 
 #### `POST /orders/{id}/ready`
-Сокращение: `IN_PROGRESS → READY`.
+Сокращение: `IN_PROGRESS → READY`. Запускает **списание ингредиентов** со склада
+(`POST /products/{id}/stock` с `movement_type: OUTGOING`) — fire-and-forget, ошибки складского
+сервиса не блокируют переход.
 
 #### `POST /orders/{id}/close`
-Сокращение: `READY → CLOSED`. Устанавливает `closed_at`. Запускает списание запаса на складе.
+Сокращение: `READY → CLOSED`. Устанавливает `closed_at`.
 
 #### `POST /orders/{id}/cancel`
-`CREATED | IN_PROGRESS | READY → CANCELLED`. Устанавливает `closed_at`.
+`CREATED | IN_PROGRESS → CANCELLED`. Устанавливает `closed_at`.
 
 #### `DELETE /orders/{id}` — `204` Без содержимого
 

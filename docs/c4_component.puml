@@ -14,7 +14,7 @@ AddElementTag("schema",  $bgColor="#F7DC6F", $fontColor="#333",  $borderColor="#
 AddElementTag("model",   $bgColor="#BB8FCE", $fontColor="white", $borderColor="#6C3483")
 
 Person(client, "HTTP клиент", "Любой HTTP клиент:\ncurl, Postman, frontend, другой сервис")
-ContainerDb(menu_db, "menu_db", "PostgreSQL 16", "categories, dishes, price_history")
+ContainerDb(menu_db, "menu_db", "PostgreSQL 16", "categories, dishes, price_history, dish_ingredients")
 
 Container_Boundary(menu_api, "menu-service  :8001  (FastAPI)") {
 
@@ -23,35 +23,35 @@ Container_Boundary(menu_api, "menu-service  :8001  (FastAPI)") {
               "Создание, чтение, обновление, удаление\nкатегорий; фильтр только активные", $tags="router")
 
     Component(dish_router, "DishesRouter",       "FastAPI APIRouter\nPATH: /api/v1/dishes",
-              "Создание, чтение, обновление, удаление блюд;\nфильтр по категории/доступности;\nобновление цены + история цены", $tags="router")
+              "Создание, чтение, обновление, удаление блюд;\nфильтр по категории/доступности;\nобновление цены + история цены;\nуправление составом (ингредиентами)", $tags="router")
 
     ' ── Сервисы / Бизнес-логика ─────────────────
     Component(cat_svc,  "CategoryService",  "Python класс",
               "Проверка уникальности имени;\nсоздание, список, обновление, удаление", $tags="service")
 
     Component(dish_svc, "DishService",      "Python класс",
-              "Проверка существования категории;\nсоздание, список, обновление, удаление;\nлогика снимка цены", $tags="service")
+              "Проверка существования категории;\nсоздание, список, обновление, удаление;\nлогика снимка цены;\nCRUD ингредиентов состава блюда", $tags="service")
 
     ' ── Репозитории / Доступ к данным ────────────
     Component(cat_repo,  "CategoryRepository",  "SQLAlchemy async",
               "get_by_id, get_by_name,\nlist_all, create, update, delete", $tags="repo")
 
     Component(dish_repo, "DishRepository",      "SQLAlchemy async",
-              "CRUD + update_price\n(записывает PriceHistory),\nget_price_history", $tags="repo")
+              "CRUD + update_price\n(записывает PriceHistory),\nget_price_history;\nget/add/delete ingredients", $tags="repo")
 
     ' ── Pydantic схемы ──────────────────────────
     Component(cat_schema,  "CategoryCreate / Update / Response", "Pydantic v2 BaseModel",
               "Валидирует: обрезание имени, мин/макс длина,\nприведение is_active", $tags="schema")
 
-    Component(dish_schema, "DishCreate / Update / PriceUpdate", "Pydantic v2 BaseModel",
-              "Валидирует: цена > 0, калории 0-10000,\nдесятичные числа питания, хотя бы одно поле", $tags="schema")
+    Component(dish_schema, "DishCreate / Update / PriceUpdate\nDishIngredientCreate / Response", "Pydantic v2 BaseModel",
+              "Валидирует: цена > 0, хотя бы одно поле;\nингредиент: quantity > 0, unit 1-50 символов", $tags="schema")
 
     ' ── ORM модели ────────────────────────────
     Component(cat_model,   "Category",     "SQLAlchemy Mapped модель",
               "id, name, description,\nis_active, timestamps", $tags="model")
 
-    Component(dish_model,  "Dish",         "SQLAlchemy Mapped модель",
-              "id, category_id, name, price,\ncalories, proteins, fats, carbs,\nweight_grams, is_available", $tags="model")
+    Component(dish_model,  "Dish / DishIngredient", "SQLAlchemy Mapped модели",
+              "Dish: id, category_id, name, price,\nis_available, image_url;\nDishIngredient: dish_id, product_id,\nproduct_name, quantity, unit", $tags="model")
 
     Component(price_model, "PriceHistory", "SQLAlchemy Mapped модель",
               "id, dish_id, old_price,\nnew_price, changed_at", $tags="model")
@@ -72,7 +72,7 @@ Rel(dish_svc, dish_repo, "вызывает")
 Rel(dish_svc, cat_repo,  "проверяет существование категории")
 
 Rel(cat_repo,  cat_model,   "отображает в/из")
-Rel(dish_repo, dish_model,  "отображает в/из")
+Rel(dish_repo, dish_model,  "отображает в/из (Dish + DishIngredient)")
 Rel(dish_repo, price_model, "записывает при изменении цены")
 
 Rel(cat_model,   menu_db, "сохраняется в", "asyncpg")

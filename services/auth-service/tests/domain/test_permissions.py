@@ -1,8 +1,7 @@
 """
-Type-driven tests for the permissions registry.
+Доменные тесты реестра прав доступа.
 
-Ensures the static permission definitions are internally consistent.
-No database or HTTP involved.
+Проверяем согласованность статических определений — без БД и HTTP.
 """
 import pytest
 
@@ -22,7 +21,7 @@ class TestPermissionRegistry:
 
     def test_all_codes_unique(self) -> None:
         codes = [p.code for p in ALL_PERMISSIONS]
-        assert len(codes) == len(set(codes)), "Duplicate permission codes found"
+        assert len(codes) == len(set(codes)), "найдены дублирующиеся коды прав"
 
     def test_all_codes_set_matches_list(self) -> None:
         expected = {p.code for p in ALL_PERMISSIONS}
@@ -33,14 +32,14 @@ class TestPermissionRegistry:
 
     def test_every_permission_has_non_empty_fields(self) -> None:
         for p in ALL_PERMISSIONS:
-            assert p.code.strip(), f"Empty code: {p}"
-            assert p.description.strip(), f"Empty description: {p}"
-            assert p.group.strip(), f"Empty group: {p}"
+            assert p.code.strip(), f"пустой code: {p}"
+            assert p.description.strip(), f"пустой description: {p}"
+            assert p.group.strip(), f"пустой group: {p}"
 
     def test_codes_follow_colon_convention(self) -> None:
-        """Codes must have at least one colon: domain:action or domain:resource:action."""
+        # формат code: domain:action или domain:resource:action
         for p in ALL_PERMISSIONS:
-            assert ":" in p.code, f"Bad code format (no colon): {p.code}"
+            assert ":" in p.code, f"неверный формат (нет двоеточия): {p.code}"
 
     def test_permission_groups_covers_all(self) -> None:
         grouped_codes: set[str] = set()
@@ -60,7 +59,7 @@ class TestPermissionRegistry:
     def test_known_groups_present(self) -> None:
         groups = set(PERMISSION_GROUPS.keys())
         for expected in ("Меню", "Склад", "Заказы", "Пользователи"):
-            assert expected in groups, f"Group '{expected}' missing"
+            assert expected in groups, f"группа '{expected}' отсутствует"
 
     def test_role_permissions_in_users_group(self) -> None:
         users_perms = {p.code for p in PERMISSION_GROUPS.get("Пользователи", [])}
@@ -77,4 +76,4 @@ class TestPermissionRegistry:
         "users:users:manage",
     ])
     def test_expected_codes_exist(self, code: str) -> None:
-        assert code in ALL_CODES, f"Expected permission '{code}' not found"
+        assert code in ALL_CODES, f"право '{code}' не найдено"

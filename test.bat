@@ -40,7 +40,7 @@ call :run_tests auth-service
 if errorlevel 1 exit /b 1
 
 echo.
-echo Все тесты прошли успешно.
+echo Testi proshli uspeshno.
 exit /b 0
 
 :menu

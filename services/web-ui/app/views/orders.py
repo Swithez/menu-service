@@ -1,8 +1,24 @@
 from flask import Blueprint, flash, redirect, render_template, request, url_for
+from markupsafe import Markup, escape
 
 from app.clients.base import ServiceError
 from app.clients.menu import MenuClient
 from app.clients.order import OrderClient
+
+
+def _flash_service_error(message: str, category: str = "danger") -> None:
+    """Flash a ServiceError message, formatting stock shortage lists as HTML."""
+    prefix = "Недостаточно продуктов на складе:"
+    if prefix in message:
+        head, _, rest = message.partition(":")
+        items = [i.strip() for i in rest.split(";") if i.strip()]
+        html = Markup(f"<strong>{escape(head.strip())}:</strong><ul class='mb-0 mt-1'>")
+        for item in items:
+            html += Markup(f"<li>{escape(item)}</li>")
+        html += Markup("</ul>")
+        flash(html, category)
+    else:
+        flash(message, category)
 
 bp = Blueprint("orders", __name__, url_prefix="/orders")
 
@@ -92,7 +108,7 @@ def create_order():
         flash("Order created successfully.", "success")
         return redirect(url_for("orders.order_detail", order_id=order["id"]))
     except ServiceError as e:
-        flash(e.message, "danger")
+        _flash_service_error(e.message)
         return redirect(url_for("orders.new_order"))
 
 

@@ -38,7 +38,6 @@ class ProductCreate(ProductBase):
 class ProductUpdate(BaseModel):
     name: str | None = Field(None, min_length=1, max_length=255)
     unit: str | None = None
-    calories_per_unit: Decimal | None = Field(None, ge=0)
     min_stock_level: Decimal | None = Field(None, ge=0)
     cost_price: Decimal | None = Field(None, gt=0)
 

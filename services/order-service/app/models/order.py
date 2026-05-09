@@ -10,6 +10,24 @@ from sqlalchemy.orm import relationship
 from app.extensions import db
 
 
+class OrderIngredient(db.Model):  # type: ignore[name-defined]
+    __tablename__ = "order_ingredients"
+
+    id = db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    order_id = db.Column(
+        UUID(as_uuid=True), ForeignKey("orders.id", ondelete="CASCADE"), nullable=False
+    )
+    product_id = db.Column(UUID(as_uuid=True), nullable=False)
+    product_name = db.Column(String(255), nullable=False)
+    unit = db.Column(String(50), nullable=False)
+    quantity = db.Column(Numeric(10, 3), nullable=False)
+
+    order = relationship("Order", back_populates="ingredients")
+
+    def __repr__(self) -> str:
+        return f"<OrderIngredient order_id={self.order_id} product={self.product_name!r} qty={self.quantity}>"
+
+
 class OrderStatus(str, Enum):
     CREATED = "CREATED"          # Order placed, awaiting kitchen
     IN_PROGRESS = "IN_PROGRESS"  # Kitchen took the order
@@ -44,6 +62,7 @@ class Order(db.Model):  # type: ignore[name-defined]
     closed_at = db.Column(DateTime(timezone=True), nullable=True)
 
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
+    ingredients = relationship("OrderIngredient", back_populates="order", cascade="all, delete-orphan")
 
     def recalculate_total(self) -> None:
         self.total_amount = sum(

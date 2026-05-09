@@ -1,8 +1,7 @@
 """
-DDD: Domain tests for warehouse-service.
+Доменные тесты warehouse-service.
 
-Tests product and stock schema rules in complete isolation —
-no HTTP layer, no database.
+Схемы продукта и остатков в изоляции — без HTTP и базы данных.
 """
 import uuid
 from decimal import Decimal
@@ -14,10 +13,10 @@ from app.models.product import MovementType, Product
 from app.schemas.product import ProductCreate, ProductUpdate, StockAdjust
 
 
-# ── Product aggregate ─────────────────────────────────────────────────────────
+# ── Агрегат Product ──────────────────────────────────────────────────────────
 
 class TestProductAggregate:
-    """Domain invariants of the Product aggregate."""
+    """Инварианты агрегата Product."""
 
     def _make_product(self, stock: str = "10", min_level: str = "5") -> Product:
         p = Product()
@@ -44,10 +43,10 @@ class TestProductAggregate:
         assert p.is_low_stock is True  # 0 <= 0 → true
 
 
-# ── ProductCreate schema ──────────────────────────────────────────────────────
+# ── Схема ProductCreate ──────────────────────────────────────────────────────
 
 class TestProductCreateDomain:
-    """Domain rules: what makes a valid product."""
+    """Правила создания продукта."""
 
     def test_minimal_valid_product(self) -> None:
         p = ProductCreate(name="Flour", unit="kg")
@@ -86,10 +85,10 @@ class TestProductCreateDomain:
         assert p.unit == unit
 
 
-# ── ProductUpdate schema ──────────────────────────────────────────────────────
+# ── Схема ProductUpdate ──────────────────────────────────────────────────────
 
 class TestProductUpdateDomain:
-    """Domain rules: what makes a valid product update."""
+    """Правила обновления продукта."""
 
     def test_empty_update_rejected(self) -> None:
         with pytest.raises(ValidationError):
@@ -104,10 +103,10 @@ class TestProductUpdateDomain:
             ProductUpdate(unit="pounds")
 
 
-# ── StockAdjust schema ────────────────────────────────────────────────────────
+# ── Схема StockAdjust ────────────────────────────────────────────────────────
 
 class TestStockAdjustDomain:
-    """Domain rules for stock movement value object."""
+    """Правила схемы движения остатков."""
 
     def test_valid_incoming_movement(self) -> None:
         adj = StockAdjust(quantity=Decimal("10.5"), movement_type=MovementType.INCOMING)

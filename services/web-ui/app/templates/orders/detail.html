@@ -39,31 +39,36 @@
       <div class="card-body d-flex flex-column gap-2">
 
         {% if order.status == 'CREATED' %}
-          <form method="post" action="{{ url_for('orders.take_order', order_id=order.id) }}">
+          <form method="post" action="{{ url_for('orders.take_order', order_id=order.id) }}"
+                onsubmit="submitOnce(this)">
             <button class="btn btn-warning w-100">
               <i class="bi bi-fire me-2"></i>Взять в работу
             </button>
           </form>
-          <form method="post" action="{{ url_for('orders.cancel_order', order_id=order.id) }}">
+          <form method="post" action="{{ url_for('orders.cancel_order', order_id=order.id) }}"
+                onsubmit="submitOnce(this)">
             <button class="btn btn-outline-danger w-100">
               <i class="bi bi-x-circle me-2"></i>Отменить заказ
             </button>
           </form>
 
         {% elif order.status == 'IN_PROGRESS' %}
-          <form method="post" action="{{ url_for('orders.mark_ready', order_id=order.id) }}">
+          <form method="post" action="{{ url_for('orders.mark_ready', order_id=order.id) }}"
+                onsubmit="submitOnce(this)">
             <button class="btn btn-info w-100">
               <i class="bi bi-check-circle me-2"></i>Готово к выдаче
             </button>
           </form>
-          <form method="post" action="{{ url_for('orders.cancel_order', order_id=order.id) }}">
+          <form method="post" action="{{ url_for('orders.cancel_order', order_id=order.id) }}"
+                onsubmit="submitOnce(this)">
             <button class="btn btn-outline-danger w-100">
               <i class="bi bi-x-circle me-2"></i>Отменить заказ
             </button>
           </form>
 
         {% elif order.status == 'READY' %}
-          <form method="post" action="{{ url_for('orders.close_order', order_id=order.id) }}">
+          <form method="post" action="{{ url_for('orders.close_order', order_id=order.id) }}"
+                onsubmit="submitOnce(this)">
             <button class="btn btn-success w-100">
               <i class="bi bi-bag-check me-2"></i>Закрыть (оплачено)
             </button>
@@ -158,4 +163,17 @@
     </div>
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function submitOnce(form) {
+  const btn = form.querySelector('button:not([type="button"])') || form.querySelector('button');
+  if (btn) {
+    btn.disabled = true;
+    const icon = btn.querySelector('i');
+    if (icon) icon.className = 'spinner-border spinner-border-sm me-2';
+  }
+}
+</script>
 {% endblock %}

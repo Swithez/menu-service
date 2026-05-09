@@ -1,13 +1,10 @@
 """
-Feature: Dish management with price tracking
-  As a restaurant manager
-  I want to manage dishes with prices
-  So that customers can see accurate menu information
+Фича: управление блюдами с историей цен.
 """
 
 
 class TestFeatureDishCreate:
-    """Feature: Create dishes."""
+    """Создание блюд."""
 
     async def test_create_dish_minimal(self, client) -> None:
         payload = {"name": "Borscht", "price": "120.00"}
@@ -45,7 +42,7 @@ class TestFeatureDishCreate:
 
 
 class TestFeatureDishRead:
-    """Feature: Read and filter dishes."""
+    """Чтение и фильтрация блюд."""
 
     async def test_list_dishes_empty(self, client) -> None:
         resp = await client.get("/api/v1/dishes/")
@@ -85,7 +82,7 @@ class TestFeatureDishRead:
 
 
 class TestFeatureDishUpdate:
-    """Feature: Update dish details."""
+    """Обновление данных блюда."""
 
     async def test_mark_dish_unavailable(self, client) -> None:
         create_resp = await client.post(
@@ -107,7 +104,7 @@ class TestFeatureDishUpdate:
 
 
 class TestFeaturePriceManagement:
-    """Feature: Manage dish prices with history tracking."""
+    """Цены с историей изменений."""
 
     async def test_update_price_stores_history(self, client) -> None:
         create_resp = await client.post(
@@ -148,7 +145,7 @@ class TestFeaturePriceManagement:
 
 
 class TestFeatureDishDelete:
-    """Feature: Delete dishes."""
+    """Удаление блюд."""
 
     async def test_delete_dish_returns_204(self, client) -> None:
         create_resp = await client.post(
@@ -163,6 +160,86 @@ class TestFeatureDishDelete:
             "/api/v1/dishes/", json={"name": "Gone Dish", "price": "50.00"}
         )
         dish_id = create_resp.json()["id"]
+        await client.delete(f"/api/v1/dishes/{dish_id}")
+        resp = await client.get(f"/api/v1/dishes/{dish_id}")
+        assert resp.status_code == 404
+
+
+class TestFeatureDishIngredients:
+    """Управление ингредиентами блюда."""
+
+    _PRODUCT_ID = "00000000-0000-0000-0000-000000000001"
+
+    async def _create_dish(self, client) -> str:
+        resp = await client.post("/api/v1/dishes/", json={"name": "Curry", "price": "350.00"})
+        return resp.json()["id"]
+
+    async def _add_ingredient(self, client, dish_id: str, **overrides) -> dict:
+        payload = {
+            "product_id": self._PRODUCT_ID,
+            "product_name": "Chicken",
+            "quantity": "0.300",
+            "unit": "kg",
+            **overrides,
+        }
+        resp = await client.post(f"/api/v1/dishes/{dish_id}/ingredients", json=payload)
+        return resp
+
+    async def test_list_ingredients_empty_on_new_dish(self, client) -> None:
+        dish_id = await self._create_dish(client)
+        resp = await client.get(f"/api/v1/dishes/{dish_id}/ingredients")
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    async def test_add_ingredient_returns_201(self, client) -> None:
+        dish_id = await self._create_dish(client)
+        resp = await self._add_ingredient(client, dish_id)
+        assert resp.status_code == 201
+        body = resp.json()
+        assert body["product_name"] == "Chicken"
+        assert body["unit"] == "kg"
+        assert body["dish_id"] == dish_id
+
+    async def test_get_dish_includes_ingredients(self, client) -> None:
+        dish_id = await self._create_dish(client)
+        await self._add_ingredient(client, dish_id, product_name="Rice")
+        resp = await client.get(f"/api/v1/dishes/{dish_id}")
+        assert resp.status_code == 200
+        ingredients = resp.json()["ingredients"]
+        assert len(ingredients) == 1
+        assert ingredients[0]["product_name"] == "Rice"
+
+    async def test_delete_ingredient_returns_204(self, client) -> None:
+        dish_id = await self._create_dish(client)
+        add_resp = await self._add_ingredient(client, dish_id)
+        ingredient_id = add_resp.json()["id"]
+        resp = await client.delete(f"/api/v1/dishes/{dish_id}/ingredients/{ingredient_id}")
+        assert resp.status_code == 204
+
+    async def test_delete_ingredient_removes_it_from_list(self, client) -> None:
+        dish_id = await self._create_dish(client)
+        add_resp = await self._add_ingredient(client, dish_id)
+        ingredient_id = add_resp.json()["id"]
+        await client.delete(f"/api/v1/dishes/{dish_id}/ingredients/{ingredient_id}")
+        resp = await client.get(f"/api/v1/dishes/{dish_id}/ingredients")
+        assert all(i["id"] != ingredient_id for i in resp.json())
+
+    async def test_add_ingredient_zero_quantity_rejected(self, client) -> None:
+        dish_id = await self._create_dish(client)
+        resp = await self._add_ingredient(client, dish_id, quantity="0")
+        assert resp.status_code == 422
+
+    async def test_add_ingredient_to_nonexistent_dish_returns_404(self, client) -> None:
+        resp = await client.post(
+            "/api/v1/dishes/00000000-0000-0000-0000-000000000000/ingredients",
+            json={"product_id": self._PRODUCT_ID, "product_name": "Oil",
+                  "quantity": "0.1", "unit": "l"},
+        )
+        assert resp.status_code == 404
+
+    async def test_delete_dish_cascades_to_ingredients(self, client) -> None:
+        dish_id = await self._create_dish(client)
+        await self._add_ingredient(client, dish_id)
         await client.delete(f"/api/v1/dishes/{dish_id}")
         resp = await client.get(f"/api/v1/dishes/{dish_id}")
         assert resp.status_code == 404

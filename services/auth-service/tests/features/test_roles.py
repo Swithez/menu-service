@@ -1,8 +1,5 @@
 """
-Feature: Role management
-  As an administrator
-  I want to create and manage roles with assigned permissions
-  So that users can be granted appropriate access
+Фича: управление ролями.
 """
 import pytest
 
@@ -11,7 +8,7 @@ FAKE_ID = "00000000-0000-0000-0000-000000000000"
 
 
 class TestFeatureRoleList:
-    """Feature: List roles."""
+    """Список ролей."""
 
     async def test_list_roles_returns_200(self, admin_client) -> None:
         resp = await admin_client.get("/api/v1/roles")
@@ -29,7 +26,7 @@ class TestFeatureRoleList:
 
 
 class TestFeatureRoleCreate:
-    """Feature: Create a new role."""
+    """Создание роли."""
 
     async def test_create_role_returns_201(self, admin_client) -> None:
         resp = await admin_client.post(
@@ -73,7 +70,7 @@ class TestFeatureRoleCreate:
 
 
 class TestFeatureRoleRead:
-    """Feature: Read a single role."""
+    """Чтение роли."""
 
     async def test_get_role_returns_detail(self, admin_client) -> None:
         create_resp = await admin_client.post("/api/v1/roles", json={"name": "chef"})
@@ -95,7 +92,7 @@ class TestFeatureRoleRead:
 
 
 class TestFeatureRoleUpdate:
-    """Feature: Update role name and description."""
+    """Обновление роли."""
 
     async def test_update_role_name(self, admin_client) -> None:
         create_resp = await admin_client.post("/api/v1/roles", json={"name": "old-name"})
@@ -132,16 +129,16 @@ class TestFeatureRoleUpdate:
 
 
 class TestFeatureRolePermissions:
-    """Feature: Assign permissions to a role."""
+    """Назначение прав роли."""
 
     async def test_set_permissions_replaces_all(self, admin_client) -> None:
-        # Given: role with one permission
+        # роль с одним правом
         create_resp = await admin_client.post(
             "/api/v1/roles",
             json={"name": "perm-test-role", "permission_codes": ["menu:dishes:read"]},
         )
         role_id = create_resp.json()["id"]
-        # When: replace with a different set
+        # заменяем на другой набор
         resp = await admin_client.put(
             f"/api/v1/roles/{role_id}/permissions",
             json=["menu:categories:read", "orders:create"],
@@ -171,7 +168,7 @@ class TestFeatureRolePermissions:
 
 
 class TestFeatureRoleDelete:
-    """Feature: Delete a role."""
+    """Удаление роли."""
 
     async def test_delete_non_system_role_returns_204(self, admin_client) -> None:
         create_resp = await admin_client.post("/api/v1/roles", json={"name": "deletable-role"})

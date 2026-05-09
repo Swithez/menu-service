@@ -2,6 +2,7 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 
 from app.clients.base import ServiceError
 from app.clients.menu import MenuClient
+from app.clients.warehouse import WarehouseClient
 
 bp = Blueprint("menu", __name__, url_prefix="/menu")
 
@@ -86,6 +87,27 @@ def dishes():
     except ServiceError as e:
         flash(e.message, "danger")
         dish_list, cat_list = [], []
+
+    # Build product stock map for availability check
+    product_stock: dict[str, float] = {}
+    try:
+        for p in WarehouseClient().list_products():
+            product_stock[p["id"]] = float(p["current_stock"])
+    except ServiceError:
+        pass
+
+    # Annotate each dish with stock-based availability
+    for dish in dish_list:
+        ingredients = dish.get("ingredients") or []
+        if not ingredients:
+            dish["_stock_ok"] = None  # no recipe configured — no check
+        else:
+            ok = all(
+                product_stock.get(ing["product_id"], 0) >= float(ing["quantity"])
+                for ing in ingredients
+            )
+            dish["_stock_ok"] = ok
+
     return render_template(
         "menu/dishes.html",
         dishes=dish_list,
@@ -109,14 +131,6 @@ def create_dish():
         "is_available": request.form.get("is_available") == "on",
         "image_url": _dec("image_url"),
     }
-    for field in ("calories", "weight_grams"):
-        v = _dec(field)
-        if v:
-            data[field] = int(v)
-    for field in ("proteins", "fats", "carbohydrates"):
-        v = _dec(field)
-        if v:
-            data[field] = v
     try:
         _client().create_dish(data)
         flash("Dish created.", "success")
@@ -132,10 +146,22 @@ def dish_detail(dish_id: str):
         dish = client.get_dish(dish_id)
         history = client.price_history(dish_id)
         cats = client.list_categories()
+        ingredients = client.get_ingredients(dish_id)
     except ServiceError as e:
         flash(e.message, "danger")
         return redirect(url_for("menu.dishes"))
-    return render_template("menu/dish_detail.html", dish=dish, history=history, categories=cats)
+    try:
+        products = WarehouseClient().list_products()
+    except ServiceError:
+        products = []
+    return render_template(
+        "menu/dish_detail.html",
+        dish=dish,
+        history=history,
+        categories=cats,
+        ingredients=ingredients,
+        products=products,
+    )
 
 
 @bp.post("/dishes/<dish_id>/update")
@@ -154,12 +180,6 @@ def update_dish(dish_id: str):
     data["is_available"] = request.form.get("is_available") == "on"
     if _dec("image_url"):
         data["image_url"] = _dec("image_url")
-    for field in ("calories", "weight_grams"):
-        if v := _dec(field):
-            data[field] = int(v)
-    for field in ("proteins", "fats", "carbohydrates"):
-        if v := _dec(field):
-            data[field] = v
     try:
         _client().update_dish(dish_id, data)
         flash("Dish updated.", "success")
@@ -198,3 +218,47 @@ def delete_dish(dish_id: str):
     except ServiceError as e:
         flash(e.message, "danger")
     return redirect(url_for("menu.dishes"))
+
+
+# ─── Ingredients ─────────────────────────────────────────────────────────────��─
+
+@bp.post("/dishes/<dish_id>/ingredients")
+def add_ingredient(dish_id: str):
+    product_id = request.form.get("product_id", "").strip()
+    product_name = request.form.get("product_name", "").strip()
+    unit = request.form.get("unit", "").strip()
+    qty_raw = request.form.get("quantity", "").strip()
+
+    if not product_id or not product_name or not unit or not qty_raw:
+        flash("Заполните все поля ингредиента.", "danger")
+        return redirect(url_for("menu.dish_detail", dish_id=dish_id))
+
+    try:
+        quantity = float(qty_raw)
+        if quantity <= 0:
+            raise ValueError
+    except ValueError:
+        flash("Количество должно быть положительным числом.", "danger")
+        return redirect(url_for("menu.dish_detail", dish_id=dish_id))
+
+    try:
+        _client().add_ingredient(dish_id, {
+            "product_id": product_id,
+            "product_name": product_name,
+            "quantity": quantity,
+            "unit": unit,
+        })
+        flash(f"Ингредиент «{product_name}» добавлен.", "success")
+    except ServiceError as e:
+        flash(e.message, "danger")
+    return redirect(url_for("menu.dish_detail", dish_id=dish_id))
+
+
+@bp.post("/dishes/<dish_id>/ingredients/<ingredient_id>/delete")
+def delete_ingredient(dish_id: str, ingredient_id: str):
+    try:
+        _client().delete_ingredient(dish_id, ingredient_id)
+        flash("Ингредиент удалён.", "success")
+    except ServiceError as e:
+        flash(e.message, "danger")
+    return redirect(url_for("menu.dish_detail", dish_id=dish_id))

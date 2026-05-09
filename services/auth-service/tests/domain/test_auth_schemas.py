@@ -1,7 +1,7 @@
 """
-Type-driven tests for auth-service Pydantic schemas.
+Доменные тесты auth-service.
 
-Validates constraints at the schema layer — no database, no HTTP.
+Только валидация Pydantic-схем — без БД и HTTP.
 """
 import uuid
 
@@ -37,7 +37,7 @@ class TestLoginRequestTypes:
             LoginRequest(email="user@example.com", password="")
 
     def test_email_domain_is_lowercased(self) -> None:
-        # EmailStr normalises only the domain part to lowercase
+        # EmailStr нормализует только домен
         req = LoginRequest(email="User@EXAMPLE.COM", password="x")
         assert req.email.endswith("@example.com")
 

@@ -1,9 +1,9 @@
 """
-Shared test fixtures for auth-service.
+Фикстуры auth-service.
 
-Uses SQLite in-memory for isolation — no real PostgreSQL required.
-Session-scoped engine seeds permissions + admin role + admin user once.
-Each test gets a function-scoped session that rolls back after the test.
+SQLite в памяти — без реального PostgreSQL.
+Права, роль admin и пользователь admin создаются один раз на сессию.
+Каждый тест откатывает сессию после завершения.
 """
 import pytest
 import pytest_asyncio
@@ -22,18 +22,18 @@ ADMIN_EMAIL = "admin@example.com"
 ADMIN_PASSWORD = "testpass123"
 
 
-# ── Engine (session-scoped) ───────────────────────────────────────────────────
+# ── Движок (session-scoped) ───────────────────────────────────────────────────
 
 @pytest_asyncio.fixture(scope="session")
 async def engine():
-    """Create tables once per test session and seed baseline data."""
+    """Создаёт таблицы и наполняет базовые данные один раз на сессию."""
     eng = create_async_engine(
         TEST_DATABASE_URL, connect_args={"check_same_thread": False}
     )
     async with eng.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    # Seed: permissions → admin role → admin user (committed, visible to all tests)
+    # сидируем: права → роль admin → пользователь admin
     factory = async_sessionmaker(eng, class_=AsyncSession, expire_on_commit=False)
     async with factory() as s:
         for p in ALL_PERMISSIONS:
@@ -63,7 +63,7 @@ async def engine():
     await eng.dispose()
 
 
-# ── Per-test session (function-scoped, rolls back) ────────────────────────────
+# ── Сессия на тест (откат после теста) ───────────────────────────────────────
 
 @pytest_asyncio.fixture()
 async def session(engine):
@@ -73,7 +73,7 @@ async def session(engine):
         await sess.rollback()
 
 
-# ── Unauthenticated HTTP client ───────────────────────────────────────────────
+# ── HTTP-клиент без авторизации ──────────────────────────────────────────────
 
 @pytest_asyncio.fixture()
 async def client(session):
@@ -86,11 +86,11 @@ async def client(session):
     app.dependency_overrides.clear()
 
 
-# ── Admin token (session-scoped, obtained once) ───────────────────────────────
+# ── Токен admin (получаем один раз на сессию) ────────────────────────────────
 
 @pytest_asyncio.fixture(scope="session")
 async def admin_token(engine):
-    """Login once and reuse the token for all authenticated tests."""
+    """Логинится один раз, токен переиспользуется во всех тестах."""
     factory = async_sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async def _override():
@@ -109,7 +109,7 @@ async def admin_token(engine):
     return token
 
 
-# ── Authenticated HTTP client (admin) ─────────────────────────────────────────
+# ── HTTP-клиент с правами admin ──────────────────────────────────────────────
 
 @pytest_asyncio.fixture()
 async def admin_client(session, admin_token):

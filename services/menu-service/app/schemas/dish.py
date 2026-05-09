@@ -74,3 +74,22 @@ class DishResponse(DishBase):
     id: uuid.UUID
     created_at: datetime
     updated_at: datetime
+    ingredients: list["DishIngredientResponse"] = []
+
+
+class DishIngredientCreate(BaseModel):
+    product_id: uuid.UUID
+    product_name: str = Field(..., min_length=1, max_length=255)
+    quantity: Decimal = Field(..., gt=0)
+    unit: str = Field(..., min_length=1, max_length=50)
+
+
+class DishIngredientResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    dish_id: uuid.UUID
+    product_id: uuid.UUID
+    product_name: str
+    quantity: Decimal
+    unit: str

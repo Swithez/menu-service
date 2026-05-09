@@ -17,6 +17,7 @@ def index():
     stats = {
         "dishes_total": 0,
         "dishes_available": 0,
+        "dishes_cookable": 0,
         "categories": 0,
         "products_total": 0,
         "products_low_stock": 0,
@@ -28,6 +29,9 @@ def index():
     low_stock = []
     active_orders = []
     services_ok = True
+
+    dishes: list = []
+    products: list = []
 
     try:
         dishes = menu.list_dishes()
@@ -44,6 +48,22 @@ def index():
         stats["products_low_stock"] = len(low_stock)
     except ServiceError:
         services_ok = False
+
+    if dishes and products:
+        product_stock = {p["id"]: float(p["current_stock"]) for p in products}
+        cookable = 0
+        for d in dishes:
+            if not d.get("is_available"):
+                continue
+            ingredients = d.get("ingredients") or []
+            if not ingredients:
+                cookable += 1
+            elif all(
+                product_stock.get(ing["product_id"], 0) >= float(ing["quantity"])
+                for ing in ingredients
+            ):
+                cookable += 1
+        stats["dishes_cookable"] = cookable
 
     try:
         for status in ("CREATED", "IN_PROGRESS", "READY", "CLOSED"):

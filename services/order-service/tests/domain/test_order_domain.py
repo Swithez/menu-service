@@ -1,13 +1,12 @@
 """
-DDD: Domain tests for order-service.
+Доменные тесты order-service.
 
-Tests domain objects and business rules in isolation —
-no HTTP layer, no external services.
+Модели и бизнес-правила в изоляции — без HTTP и внешних сервисов.
 
-  - TestOrderAggregate       — Order model invariants (requires app ctx for SQLAlchemy)
-  - TestOrderStatusTransitions — Pure enum / transition-rule logic
-  - TestOrderCreateSchema    — Pydantic schema validation rules
-  - TestOrderItemSchema      — Pydantic schema validation rules
+  - TestOrderAggregate            — инварианты модели Order (нужен app ctx для SQLAlchemy)
+  - TestOrderStatusTransitions    — правила переходов статусов
+  - TestOrderCreateSchema         — валидация схемы создания заказа
+  - TestOrderItemSchema           — валидация схемы позиции заказа
 """
 import uuid
 from decimal import Decimal
@@ -19,11 +18,11 @@ from app.models.order import Order, OrderItem, OrderStatus
 from app.schemas.order import OrderCreateSchema, OrderItemCreate, OrderStatusTransitionSchema
 
 
-# ── Fixtures ──────────────────────────────────────────────────────────────────
+# ── Фикстуры ─────────────────────────────────────────────────────────────────
 
 @pytest.fixture(scope="module")
 def flask_app():
-    """Minimal Flask app with in-memory SQLite — used for model instantiation."""
+    """Минимальное Flask-приложение на SQLite в памяти — нужно для инстанциирования моделей."""
     from app.main import create_app
     from app.extensions import db as _db
 
@@ -41,7 +40,7 @@ def app_ctx(flask_app):
         yield
 
 
-# ── Helpers ───────────────────────────────────────────────────────────────────
+# ── Вспомогательные функции ──────────────────────────────────────────────────
 
 def _make_order(**kwargs) -> Order:
     return Order(status=OrderStatus.CREATED, **kwargs)
@@ -56,10 +55,10 @@ def _make_item(price: str = "100.00", qty: int = 1) -> OrderItem:
     )
 
 
-# ── Order aggregate ───────────────────────────────────────────────────────────
+# ── Агрегат Order ────────────────────────────────────────────────────────────
 
 class TestOrderAggregate:
-    """Domain invariants of the Order aggregate root."""
+    """Инварианты агрегата Order."""
 
     def test_total_zero_for_empty_order(self, app_ctx) -> None:
         order = _make_order()
@@ -74,8 +73,8 @@ class TestOrderAggregate:
 
     def test_total_multiple_items(self, app_ctx) -> None:
         order = _make_order()
-        order.items.append(_make_item("100.00", qty=3))  # 300
-        order.items.append(_make_item("50.00", qty=2))   # 100
+        order.items.append(_make_item("100.00", qty=3))  # 300.00
+        order.items.append(_make_item("50.00", qty=2))   # 100.00
         order.recalculate_total()
         assert order.total_amount == Decimal("400.00")
 
@@ -94,10 +93,10 @@ class TestOrderAggregate:
         assert order.status == OrderStatus.CREATED
 
 
-# ── Status transition rules (pure logic, no DB) ───────────────────────────────
+# ── Правила переходов статусов (без БД) ──────────────────────────────────────
 
 class TestOrderStatusTransitions:
-    """Domain invariants: allowed state machine transitions."""
+    """Допустимые переходы состояний."""
 
     @pytest.mark.parametrize("current,nxt", [
         (OrderStatus.CREATED,     OrderStatus.IN_PROGRESS),
@@ -107,7 +106,7 @@ class TestOrderStatusTransitions:
         (OrderStatus.READY,       OrderStatus.CLOSED),
     ])
     def test_valid_transitions_pass(self, current: OrderStatus, nxt: OrderStatus) -> None:
-        OrderStatusTransitionSchema.validate_transition(current, nxt)  # must not raise
+        OrderStatusTransitionSchema.validate_transition(current, nxt)  # не должно выбрасывать исключение
 
     @pytest.mark.parametrize("current,nxt", [
         (OrderStatus.CREATED,     OrderStatus.READY),
@@ -130,10 +129,10 @@ class TestOrderStatusTransitions:
         assert len(OrderStatusTransitionSchema.ALLOWED_TRANSITIONS[OrderStatus.CANCELLED]) == 0
 
 
-# ── OrderCreateSchema (pure Pydantic, no app ctx needed) ─────────────────────
+# ── OrderCreateSchema (чистый Pydantic) ──────────────────────────────────────
 
 class TestOrderCreateSchema:
-    """Domain: creation schema validation rules."""
+    """Правила схемы создания заказа."""
 
     def test_minimal_valid_order(self) -> None:
         schema = OrderCreateSchema(items=[{"dish_id": str(uuid.uuid4()), "quantity": 1}])
@@ -171,10 +170,10 @@ class TestOrderCreateSchema:
             )
 
 
-# ── OrderItemCreate (pure Pydantic) ───────────────────────────────────────────
+# ── OrderItemCreate (чистый Pydantic) ────────────────────────────────────────
 
 class TestOrderItemSchema:
-    """Domain: order item creation schema rules."""
+    """Правила схемы позиции заказа."""
 
     def test_valid_item(self) -> None:
         item = OrderItemCreate(dish_id=uuid.uuid4(), quantity=2)
@@ -199,3 +198,39 @@ class TestOrderItemSchema:
     def test_notes_optional(self) -> None:
         item = OrderItemCreate(dish_id=uuid.uuid4(), quantity=1)
         assert item.notes is None
+
+
+# ── Сообщения об ошибках переходов ───────────────────────────────────────────
+
+class TestOrderTransitionMessages:
+    """Ошибки переходов статусов выдаются на русском."""
+
+    def test_terminal_state_error_mentions_final_state(self) -> None:
+        with pytest.raises(ValueError, match="финальное состояние"):
+            OrderStatusTransitionSchema.validate_transition(
+                OrderStatus.CLOSED, OrderStatus.CANCELLED
+            )
+
+    def test_cancelled_state_also_terminal(self) -> None:
+        with pytest.raises(ValueError, match="финальное состояние"):
+            OrderStatusTransitionSchema.validate_transition(
+                OrderStatus.CANCELLED, OrderStatus.CREATED
+            )
+
+    def test_invalid_transition_lists_allowed_in_russian(self) -> None:
+        with pytest.raises(ValueError, match="Доступные переходы"):
+            OrderStatusTransitionSchema.validate_transition(
+                OrderStatus.CREATED, OrderStatus.CLOSED
+            )
+
+    def test_error_contains_source_status_in_russian(self) -> None:
+        with pytest.raises(ValueError, match="Нельзя перевести"):
+            OrderStatusTransitionSchema.validate_transition(
+                OrderStatus.READY, OrderStatus.IN_PROGRESS
+            )
+
+    def test_error_contains_ready_status_name(self) -> None:
+        with pytest.raises(ValueError, match="Готово к выдаче"):
+            OrderStatusTransitionSchema.validate_transition(
+                OrderStatus.READY, OrderStatus.CREATED
+            )

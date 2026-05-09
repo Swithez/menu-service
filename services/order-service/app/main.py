@@ -29,15 +29,15 @@ def create_app(testing: bool = False) -> Flask:
 
     @app.errorhandler(404)
     def not_found(exc):  # type: ignore[no-untyped-def]
-        return jsonify({"detail": str(exc)}), 404
+        return jsonify({"detail": exc.description}), 404
 
     @app.errorhandler(409)
     def conflict(exc):  # type: ignore[no-untyped-def]
-        return jsonify({"detail": str(exc)}), 409
+        return jsonify({"detail": exc.description}), 409
 
     @app.errorhandler(422)
     def unprocessable(exc):  # type: ignore[no-untyped-def]
-        return jsonify({"detail": str(exc)}), 422
+        return jsonify({"detail": exc.description}), 422
 
     @app.errorhandler(503)
     def service_unavailable(exc):  # type: ignore[no-untyped-def]

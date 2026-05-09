@@ -3,10 +3,10 @@ from http import HTTPStatus
 
 from fastapi import HTTPException
 
-from app.models.dish import Dish, PriceHistory
+from app.models.dish import Dish, DishIngredient, PriceHistory
 from app.repositories.category import CategoryRepository
 from app.repositories.dish import DishRepository
-from app.schemas.dish import DishCreate, DishUpdate, PriceUpdate
+from app.schemas.dish import DishCreate, DishIngredientCreate, DishUpdate, PriceUpdate
 
 
 class DishService:
@@ -67,3 +67,20 @@ class DishService:
     async def get_price_history(self, dish_id: uuid.UUID) -> list[PriceHistory]:
         await self.get_dish(dish_id)
         return await self._dish_repo.get_price_history(dish_id)
+
+    async def get_ingredients(self, dish_id: uuid.UUID) -> list[DishIngredient]:
+        await self.get_dish(dish_id)
+        return await self._dish_repo.get_ingredients(dish_id)
+
+    async def add_ingredient(self, dish_id: uuid.UUID, data: DishIngredientCreate) -> DishIngredient:
+        await self.get_dish(dish_id)
+        return await self._dish_repo.add_ingredient(dish_id, data)
+
+    async def delete_ingredient(self, dish_id: uuid.UUID, ingredient_id: uuid.UUID) -> None:
+        await self.get_dish(dish_id)
+        deleted = await self._dish_repo.delete_ingredient(ingredient_id)
+        if not deleted:
+            raise HTTPException(
+                status_code=HTTPStatus.NOT_FOUND,
+                detail=f"Ingredient {ingredient_id} not found",
+            )

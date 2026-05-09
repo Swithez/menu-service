@@ -1,21 +1,15 @@
 """
-Feature: Category management
-  As a restaurant manager
-  I want to create, view, update, and delete menu categories
-  So that dishes can be organized by type
+Фича: управление категориями меню.
 """
 import pytest
 
 
 class TestFeatureCategoryCreate:
-    """Feature: Create a new category."""
+    """Создание категории."""
 
     async def test_create_category_returns_201(self, client) -> None:
-        # Given: valid category data
         payload = {"name": "Hot Dishes", "description": "Warm main courses"}
-        # When: POST /api/v1/categories/
         resp = await client.post("/api/v1/categories/", json=payload)
-        # Then: 201 Created with the new category
         assert resp.status_code == 201
         body = resp.json()
         assert body["name"] == "Hot Dishes"
@@ -26,7 +20,7 @@ class TestFeatureCategoryCreate:
     async def test_create_duplicate_category_returns_409(self, client) -> None:
         payload = {"name": "Unique Category"}
         await client.post("/api/v1/categories/", json=payload)
-        # When: same name again
+        # повторный запрос с тем же именем
         resp = await client.post("/api/v1/categories/", json=payload)
         assert resp.status_code == 409
 
@@ -40,7 +34,7 @@ class TestFeatureCategoryCreate:
 
 
 class TestFeatureCategoryRead:
-    """Feature: Read categories."""
+    """Чтение категорий."""
 
     async def test_list_categories_returns_empty(self, client) -> None:
         resp = await client.get("/api/v1/categories/")
@@ -72,7 +66,7 @@ class TestFeatureCategoryRead:
 
 
 class TestFeatureCategoryUpdate:
-    """Feature: Update a category."""
+    """Обновление категории."""
 
     async def test_update_category_name(self, client) -> None:
         create_resp = await client.post("/api/v1/categories/", json={"name": "Old Name"})
@@ -95,7 +89,7 @@ class TestFeatureCategoryUpdate:
 
 
 class TestFeatureCategoryDelete:
-    """Feature: Delete a category."""
+    """Удаление категории."""
 
     async def test_delete_category_returns_204(self, client) -> None:
         create_resp = await client.post("/api/v1/categories/", json={"name": "Deletable"})

@@ -1,6 +1,6 @@
 """
-Test fixtures for order-service.
-Uses SQLite in-memory DB and mocked inter-service HTTP calls.
+Фикстуры order-service.
+SQLite в памяти, межсервисные HTTP-запросы заглушены.
 """
 import uuid
 from decimal import Decimal
@@ -43,7 +43,7 @@ def client(app):
 
 @pytest.fixture(autouse=True)
 def rollback_after_test(app):
-    """Isolate each test in a transaction."""
+    """Каждый тест — в своей транзакции."""
     with app.app_context():
         _db.session.begin_nested()
         yield
@@ -52,10 +52,16 @@ def rollback_after_test(app):
 
 @pytest.fixture()
 def mock_menu_service():
-    """Patch httpx.get so tests don't call the real menu-service."""
-    mock_resp = MagicMock()
-    mock_resp.status_code = 200
-    mock_resp.json.return_value = FAKE_DISH
-    mock_resp.raise_for_status = MagicMock()
-    with patch("httpx.get", return_value=mock_resp) as mock:
+    """Заглушка httpx.get: возвращает блюдо или пустые ингредиенты по URL."""
+    def _side_effect(url: str, **kwargs):
+        resp = MagicMock()
+        resp.raise_for_status = MagicMock()
+        resp.status_code = 200
+        if "/ingredients" in url:
+            resp.json.return_value = []
+        else:
+            resp.json.return_value = FAKE_DISH
+        return resp
+
+    with patch("httpx.get", side_effect=_side_effect) as mock:
         yield mock, FAKE_DISH

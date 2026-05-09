@@ -53,15 +53,20 @@ package "menu_db" #E8F4FD {
         * name          : VARCHAR(255)
           description   : TEXT
         * price         : NUMERIC(10,2)
-          calories      : INTEGER
-          proteins      : NUMERIC(6,2)
-          fats          : NUMERIC(6,2)
-          carbohydrates : NUMERIC(6,2)
-          weight_grams  : INTEGER
         * is_available   : BOOLEAN      = true
           image_url     : TEXT
         * created_at     : TIMESTAMPTZ
         * updated_at     : TIMESTAMPTZ
+    }
+
+    entity "состав_блюда" <<menu>> {
+        * id           : UUID          <<PK>>
+        --
+        * dish_id      : UUID          <<FK → dishes.id CASCADE>>
+        * product_id   : UUID          <<ref: products.id (кросс-сервис)>>
+        * product_name : VARCHAR(255)  <<снимок>>
+        * quantity     : NUMERIC(10,3)
+        * unit         : VARCHAR(50)
     }
 
     entity "история_цен" <<menu>> {
@@ -73,8 +78,9 @@ package "menu_db" #E8F4FD {
         * changed_at : TIMESTAMPTZ
     }
 
-    категории  ||--o{ блюда        : "содержит"
-    блюда      ||--o{ история_цен : "отслеживает"
+    категории  ||--o{ блюда         : "содержит"
+    блюда      ||--o{ история_цен  : "отслеживает"
+    блюда      ||--o{ состав_блюда : "имеет рецепт"
 }
 
 ' ══════════════════════════════════════════════
@@ -87,7 +93,6 @@ package "warehouse_db" #E9F7EF {
         --
         * name              : VARCHAR(255)  <<UNIQUE>>
         * unit              : VARCHAR(50)
-          calories_per_unit : NUMERIC(8,2)
         * current_stock     : NUMERIC(12,3) = 0
         * min_stock_level   : NUMERIC(12,3) = 0
           cost_price        : NUMERIC(10,2)
@@ -139,14 +144,77 @@ package "order_db" #FEF9E7 {
           notes          : TEXT
     }
 
-    заказы ||--o{ позиции_заказа : "содержит"
+    entity "ингредиенты_заказа" <<order>> {
+        * id           : UUID          <<PK>>
+        --
+        * order_id     : UUID          <<FK → orders.id CASCADE>>
+        * product_id   : UUID          <<ref: products.id (кросс-сервис)>>
+        * product_name : VARCHAR(255)  <<снимок>>
+        * unit         : VARCHAR(50)   <<снимок>>
+        * quantity     : NUMERIC(10,3) <<агрегировано по позициям>>
+    }
+
+    заказы ||--o{ позиции_заказа     : "содержит"
+    заказы ||--o{ ингредиенты_заказа : "резервирует"
+}
+
+' ══════════════════════════════════════════════
+'  БД: auth_db
+' ══════════════════════════════════════════════
+
+skinparam entity {
+    BackgroundColor<<auth>> #F5EEF8
+    BorderColor<<auth>>     #8E44AD
+    HeaderBackgroundColor<<auth>> #8E44AD
+    FontColor<<auth>>       white
+}
+
+package "auth_db" #F5EEF8 {
+
+    entity "разрешения" <<auth>> {
+        * code          : VARCHAR(100) <<PK>>
+        --
+        * description   : VARCHAR(255)
+        * group         : VARCHAR(100)
+    }
+
+    entity "роли" <<auth>> {
+        * id            : UUID         <<PK>>
+        --
+        * name          : VARCHAR(100) <<UNIQUE>>
+          description   : TEXT
+        * is_system      : BOOLEAN      = false
+        * created_at     : TIMESTAMPTZ
+    }
+
+    entity "роли_разрешения" <<auth>> {
+        * role_id           : UUID         <<PK, FK → roles.id CASCADE>>
+        * permission_code   : VARCHAR(100) <<PK, FK → permissions.code CASCADE>>
+    }
+
+    entity "пользователи" <<auth>> {
+        * id               : UUID         <<PK>>
+        --
+          role_id          : UUID         <<FK → roles.id SET NULL>>
+        * email            : VARCHAR(255) <<UNIQUE>>
+        * full_name        : VARCHAR(255)
+        * hashed_password  : VARCHAR(255)
+        * is_active         : BOOLEAN      = true
+        * created_at        : TIMESTAMPTZ
+        * updated_at        : TIMESTAMPTZ
+    }
+
+    роли          ||--o{ роли_разрешения  : "содержит"
+    разрешения    ||--o{ роли_разрешения  : "назначено в"
+    роли          ||--o{ пользователи     : "назначена"
 }
 
 ' ══════════════════════════════════════════════
 '  Кросс-сервисные логические ссылки (пунктир)
 ' ══════════════════════════════════════════════
-блюда        ....> позиции_заказа     : "dish_id (HTTP ссылка)"
-блюда        ....> движения_запаса : "dish_id через consume API"
+блюда            ....> позиции_заказа     : "dish_id (HTTP ссылка)"
+состав_блюда     ....> продукты           : "product_id (HTTP ссылка)"
+ингредиенты_заказа ....> продукты         : "product_id → списание OUTGOING"
 
 ' ══════════════════════════════════════════════
 '  Легенда
