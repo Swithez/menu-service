@@ -97,3 +97,14 @@ run-auth:
 	cd services/auth-service && \
 	  alembic upgrade head && \
 	  uvicorn app.main:app --host 0.0.0.0 --port 8004 --reload
+
+# ── Tests in Docker (single container) ───────────────────────────────────────
+test-docker:
+	docker compose -f docker-compose.test.yml up --build
+
+test-docker-logs:
+	docker compose -f docker-compose.test.yml logs tests
+
+test-docker-clean:
+	docker compose -f docker-compose.test.yml down --remove-orphans
+	docker rmi $$(docker images -q menu-service-tests 2>/dev/null) 2>/dev/null || true

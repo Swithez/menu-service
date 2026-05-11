@@ -25,7 +25,7 @@ class TestFeatureCreateOrder:
         resp = client.post("/api/v1/orders/", json=payload)
         assert resp.status_code == 201
         body = resp.get_json()
-        assert body["status"] == "FALL"
+        assert body["status"] == "CREATED"
         assert body["table_number"] == 1
         assert len(body["items"]) == 1
         assert body["items"][0]["dish_name"] == dish["name"]

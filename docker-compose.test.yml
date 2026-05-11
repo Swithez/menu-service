@@ -1,0 +1,11 @@
+version: "3.9"
+
+services:
+  tests:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    environment:
+      DATABASE_URL: ""
+      TESTING: "1"
+    restart: "no"
